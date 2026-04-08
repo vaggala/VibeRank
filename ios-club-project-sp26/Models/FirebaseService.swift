@@ -26,6 +26,7 @@ class FirebaseService {
             uid: user.uid,
             name: user.displayName ?? "",
             hobbies: [],
+            mbti: nil,
             personalScore: 0,
             leaderboardRank: 0
         )
@@ -65,6 +66,28 @@ class FirebaseService {
             try Auth.auth().signOut()
         } catch {
             print("error signing out: \(error)")
+        }
+    }
+    
+    func fetchProfile() async -> User? {
+        guard let uid = Auth.auth().currentUser?.uid else { return nil }
+        let ref = db.collection("users").document(uid)
+        do {
+            let document = try await ref.getDocument()
+            guard let data = document.data() else { return nil }
+            let user = User(
+                uid: uid,
+                name: data["name"] as? String ?? "",
+                hobbies: data["hobbies"] as? [String] ?? [],
+                mbti: data["mbti"] as? String,
+                personalScore: data["personalScore"] as? Int ?? 0,
+                leaderboardRank: data["leaderboardRank"] as? Int ?? 0
+            )
+            return user
+            
+        } catch {
+            print("error fetching profile: \(error)")
+            return nil
         }
     }
     

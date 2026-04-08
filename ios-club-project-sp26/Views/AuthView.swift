@@ -8,6 +8,7 @@
 import SwiftUI
 
 struct AuthView: View {
+    @Environment(ProfileViewModel.self) var vm
     @State private var isLogin = true
     
     var body: some View {
@@ -22,6 +23,7 @@ struct AuthView: View {
 struct Login: View {
     @State private var email = ""
     @State private var password = ""
+    @Environment(ProfileViewModel.self) var vm
     @Binding var toggle: Bool
     
     var body: some View {
@@ -49,8 +51,9 @@ struct Login: View {
             
             Button {
                 Task {
-                    let uid = await FirebaseService.shared.signIn(email: email, password: password)
-                    print(uid ?? "login failed :(")
+//                    let uid = await FirebaseService.shared.signIn(email: email, password: password)
+//                    print(uid ?? "login failed :(")
+                    await vm.signIn(email: email, password: password)
                 }
             } label: {
                 HStack {
@@ -72,6 +75,7 @@ struct SignUp: View {
     @State private var email = ""
     @State private var password = ""
     @State private var name = ""
+    @Environment(ProfileViewModel.self) var vm
     @Binding var toggle: Bool
     
     var body: some View {
@@ -108,9 +112,13 @@ struct SignUp: View {
             
             Button {
                 Task {
-                    // await vm.signUp(email: email, password: password, name: name)     add this when adding view model(s)
-                    let uid = await FirebaseService.shared.signUp(email: email, password: password, name: name)
-                    print(uid ?? "signup failed :(")
+                     await vm.signUp(email: email, password: password, name: name)     /*add this when adding view model(s)*/
+//                    let uid = await FirebaseService.shared.signUp(email: email, password: password, name: name)
+//                    if uid != nil {
+//                        toggle = true
+//                    } else {
+//                        print("signup failed :(")
+//                    }
                 }
             } label: {
                 HStack {
@@ -132,5 +140,6 @@ struct SignUp: View {
 }
 
 #Preview {
-    AuthView()
+    let vm = ProfileViewModel()
+    AuthView().environment(vm)
 }
