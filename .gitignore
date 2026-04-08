@@ -1,0 +1,79 @@
+GoogleService-Info.plist
+
+# Xcode
+#
+build/
+DerivedData/
+*.xcworkspace
+!default.xcworkspace  # if you want to keep a default workspace
+*.xccheckout
+*.xcodeproj/project.xcworkspace/contents.xcworkspacedata
+*.xcodeproj/xcuserdata
+*.moved-aside
+*.pbxuser
+*.perspectivev3
+*.mode1v3
+*.mode2v3
+*.xccheckout
+*.xcscmblueprint
+
+# Swift Package Manager
+#
+.build/
+Packages/
+.swiftpm/
+Package.resolved
+
+# CocoaPods
+#
+Pods/
+Podfile.lock
+
+# Carthage
+#
+Carthage/Build/
+
+# Fastlane
+#
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots/**/*.png
+fastlane/test_output
+
+# Xcode specific files
+#
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# Playgrounds
+#
+timeline.xctimeline
+playground.xcworkspace
+
+# User settings
+#
+*.swp
+*.lock
+*.DS_Store
+*.xccheckout
+
+# Mac OS
+#
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Derived data, temporary files
+#
+*.swp
+*.tmp
+*.swm
+*.lock
+*.so
+*.out
+
+# xcconfig / build settings overrides (optional)
+#
+# !Config.xcconfig
