@@ -102,7 +102,7 @@ class FirebaseService {
                 mbti: data["mbti"] as? String ?? "",
                 anthem: data["anthem"] as? String ?? "",
                 routine: data["routine"] as? String ?? "",
-                homeTurf: data["mhomeTurf"] as? String ?? "",
+                homeTurf: data["homeTurf"] as? String ?? "",
                 major: data["major"] as? String ?? "",
                 coreVibe: data["coreVibe"] as? String ?? "",
                 funFact: data["funFact"] as? String ?? "",
