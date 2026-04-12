@@ -23,51 +23,60 @@ struct AuthView: View {
 struct Login: View {
     @State private var email = ""
     @State private var password = ""
+    @State private var goToVoteTest = false
     @Environment(ProfileViewModel.self) var vm
     @Binding var toggle: Bool
     
     var body: some View {
-        VStack(spacing: 16) {
-            Text("Log In!").font(.title)
-            
-//            TextField("Email", text: $email).textFieldStyle(.roundedBorder)
-//            SecureField("Password", text: $password).textFieldStyle(.roundedBorder)
-            
-            TextField("", text: $email, prompt: Text("Email").foregroundStyle(Color(red: 0.6, green: 0.6, blue: 0.6)))
-                .padding(10)
-                .font(.title)
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
-                .background {
-                    RoundedRectangle(cornerRadius: 8).stroke(Color(red: 0.6, green: 0.6, blue: 0.6))
+        NavigationStack {
+            VStack(spacing: 16) {
+                Text("Log In!").font(.title)
+                
+                //            TextField("Email", text: $email).textFieldStyle(.roundedBorder)
+                //            SecureField("Password", text: $password).textFieldStyle(.roundedBorder)
+                
+                TextField("", text: $email, prompt: Text("Email").foregroundStyle(Color(red: 0.6, green: 0.6, blue: 0.6)))
+                    .padding(10)
+                    .font(.title)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                    .background {
+                        RoundedRectangle(cornerRadius: 8).stroke(Color(red: 0.6, green: 0.6, blue: 0.6))
+                    }
+                SecureField("", text: $password, prompt: Text("Password").foregroundStyle(Color(red: 0.6, green: 0.6, blue: 0.6)))
+                    .padding(10)
+                    .font(.title)
+                    .textInputAutocapitalization(.never)
+                    .background {
+                        RoundedRectangle(cornerRadius: 8).stroke(Color(red: 0.6, green: 0.6, blue: 0.6))
+                    }
+                
+                Button {
+                    Task {
+                        //                    let uid = await FirebaseService.shared.signIn(email: email, password: password)
+                        //                    print(uid ?? "login failed :(")
+                        let success = await vm.signIn(email: email, password: password)
+                        if success {
+                            goToVoteTest = true
+                        }
+                    }
+                } label: {
+                    HStack {
+                        Spacer()
+                        Text("Submit").foregroundStyle(.black).font(.title)
+                        Spacer()
+                    }.padding(10).background {
+                        RoundedRectangle(cornerRadius: 8).stroke(Color(red: 0.6, green: 0.6, blue: 0.6))
+                    }
                 }
-            SecureField("", text: $password, prompt: Text("Password").foregroundStyle(Color(red: 0.6, green: 0.6, blue: 0.6)))
-                .padding(10)
-                .font(.title)
-                .textInputAutocapitalization(.never)
-                .background {
-                    RoundedRectangle(cornerRadius: 8).stroke(Color(red: 0.6, green: 0.6, blue: 0.6))
+                Button("Need an account? Sign up") {
+                    toggle = false
                 }
-            
-            Button {
-                Task {
-//                    let uid = await FirebaseService.shared.signIn(email: email, password: password)
-//                    print(uid ?? "login failed :(")
-                    await vm.signIn(email: email, password: password)
+            }.padding()
+                .navigationDestination(isPresented: $goToVoteTest) {
+                    VoteTest()
                 }
-            } label: {
-                HStack {
-                    Spacer()
-                    Text("Submit").foregroundStyle(.black).font(.title)
-                    Spacer()
-                }.padding(10).background {
-                    RoundedRectangle(cornerRadius: 8).stroke(Color(red: 0.6, green: 0.6, blue: 0.6))
-                }
-            }
-            Button("Need an account? Sign up") {
-                toggle = false
-            }
-        }.padding()
+        }
     }
 }
 
@@ -136,10 +145,11 @@ struct SignUp: View {
         }.padding()
         
         
+        
     }
 }
 
 #Preview {
     let vm = ProfileViewModel()
-    AuthView().environment(vm)
+   AuthView().environment(vm)
 }
