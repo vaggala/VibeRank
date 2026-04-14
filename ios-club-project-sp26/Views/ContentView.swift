@@ -16,25 +16,27 @@ struct ContentView: View {
             LeaderboardPage()
                 .tag(0)
                 .tabItem {
-                    Image(systemName: "diamond.fill")
+                    Image(systemName: "trophy.fill")
                     Text("Leaderboard")
                 }
 
             VotingView()
                 .tag(1)
                 .tabItem {
-                    Image(systemName: "circle.fill")
+                    Image(systemName: "list.bullet.clipboard.fill")
                     Text("Voting")
                 }
 
             ProfileView()
                 .tag(2)
                 .tabItem {
-                    Image(systemName: "triangle.fill")
+                    Image(systemName: "person.fill")
                     Text("My Profile")
                 }
         }
-        .tint(.blue)
+        .toolbarBackground(Color(red: 83/255, green: 74/255, blue: 183/255), for: .tabBar)
+        .toolbarBackground(.visible, for: .tabBar)
+        .tint(.white)
     }
 }
 

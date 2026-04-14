@@ -172,7 +172,7 @@ struct VoteActionButtons: View {
              VoteButton(
                  icon: "xmark",
                  label: "Pass",
-                 fill: Color.white,
+                 fill: Color(red: 0.95, green: 0.4, blue: 0.55),
                  stroke: Color(red: 0.95, green: 0.4, blue: 0.55),
                  iconColor: .white,
                  iconBg: Color(red: 0.95, green: 0.4, blue: 0.55),

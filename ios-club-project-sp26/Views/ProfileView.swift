@@ -52,6 +52,9 @@ struct ProfileView: View {
                 .offset(y: -16)
                 InfoList(cards: hardcodedInfoCards)
                 Spacer().frame(height: 40)
+                Button("Sign Out") {
+                    vm.signOut()
+                }
             }
             
         //}
