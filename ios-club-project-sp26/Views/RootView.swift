@@ -13,7 +13,8 @@ struct RootView: View {
     var body: some View {
         Group {
             if vm.user != nil {
-                profileView_test()
+                //profileView_test()
+                ContentView()
             } else {
                 AuthView()
             }

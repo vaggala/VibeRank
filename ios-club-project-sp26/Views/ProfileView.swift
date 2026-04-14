@@ -30,29 +30,33 @@ struct ProfileView: View {
     @Environment(ProfileViewModel.self) var vm
     
     var body: some View {
-        VStack(spacing: 0) {
-            ProfileHeader(
-                initials: hardcodedInitials,
-                name: vm.user?.name ?? "Jordan Kim",
-                city: hardcodedCity,
-                age: hardcodedAge
-            )
-            StatsRow(
-                vibePoints: vm.user?.personalScore ?? 847,
-                rank: vm.user?.leaderboardRank ?? 4,
-                smashes: hardcodedSmashes,
-                passes: hardcodedPasses
-            )
-            .offset(y: -24)
-            CoreVibeBanner(
-                vibe: hardcodedCoreVibe,
-                subtitle: hardcodedVibeSubtitle
-            )
-            .offset(y: -16)
-            InfoList(cards: hardcodedInfoCards)
-            Spacer().frame(height: 40)
-        }
-        .background(Color.black.ignoresSafeArea())
+        // ScrollView {
+            VStack(spacing: 0) {
+                ProfileHeader(
+                    initials: hardcodedInitials,
+                    name: vm.user?.name ?? "Jordan Kim",
+                    city: hardcodedCity,
+                    age: hardcodedAge
+                )
+                StatsRow(
+                    vibePoints: vm.user?.personalScore ?? 847,
+                    rank: vm.user?.leaderboardRank ?? 4,
+                    smashes: hardcodedSmashes,
+                    passes: hardcodedPasses
+                )
+                .offset(y: -24)
+                CoreVibeBanner(
+                    vibe: hardcodedCoreVibe,
+                    subtitle: hardcodedVibeSubtitle
+                )
+                .offset(y: -16)
+                InfoList(cards: hardcodedInfoCards)
+                Spacer().frame(height: 40)
+            }
+            
+        //}
+        .background(Color(red: 13/255, green: 11/255, blue: 26/255).ignoresSafeArea())
+        
     }
 }
 
@@ -188,11 +192,14 @@ struct InfoCard: View {
       let cards: [(label: String, value: String, color: Color)]
                                                                                                                                                                                       
       var body: some View {
-          VStack(spacing: 10) {
-              ForEach(cards, id: \.label) { card in
-                  InfoCard(label: card.label, value: card.value, dotColor: card.color)
+          ScrollView {
+              VStack(spacing: 10) {
+                  ForEach(cards, id: \.label) { card in
+                      InfoCard(label: card.label, value: card.value, dotColor: card.color)
+                  }
               }
           }
+          
           .padding(.horizontal, 16)
       }
   }
