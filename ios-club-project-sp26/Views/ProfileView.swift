@@ -13,6 +13,18 @@ private let hardcodedCity = "Atlanta, GA"
 private let hardcodedAge = 21
 private let hardcodedSmashes = 124
 private let hardcodedPasses = 38
+private let hardcodedCoreVibe = "Golden Hour Vibes"
+private let hardcodedVibeSubtitle = "calm but make it iconic"
+
+private let hardcodedInfoCards: [(label: String, value: String, color: Color)] = [
+    ("Major",    "Business & Design (Double Major)", .purple),
+    ("School",   "Georgia Tech",                     .purple),
+    ("MBTI",     "INFJ",                             .purple),
+    ("Fav Song", "\"Golden Hour\" by JVKE",          .green),
+    ("Origin",   "Seoul, South Korea",               .green),
+    ("Routine",  "Morning runs + iced matcha",       .orange)
+]
+
 
 struct ProfileView: View {
     @Environment(ProfileViewModel.self) var vm
@@ -32,7 +44,13 @@ struct ProfileView: View {
                 passes: hardcodedPasses
             )
             .offset(y: -24)
-            Spacer()
+            CoreVibeBanner(
+                vibe: hardcodedCoreVibe,
+                subtitle: hardcodedVibeSubtitle
+            )
+            .offset(y: -16)
+            InfoList(cards: hardcodedInfoCards)
+            Spacer().frame(height: 40)
         }
         .background(Color.black.ignoresSafeArea())
     }
@@ -120,6 +138,67 @@ struct StatsRow: View {
           .padding(.vertical, 14)
       }
   }
+
+struct CoreVibeBanner: View {
+    let vibe: String
+    let subtitle: String
+                                                                                                                                                                                      
+    var body: some View {
+        (Text("Core vibe: ")
+            .foregroundColor(.white.opacity(0.6))
+           + Text(vibe).bold().foregroundColor(.white)
+           + Text(" · \(subtitle)").foregroundColor(.white.opacity(0.6)))
+              .font(.system(size: 14))
+              .frame(maxWidth: .infinity, alignment: .leading)
+              .padding(16)
+              .background(Color(red: 0.09, green: 0.08, blue: 0.15))
+              .cornerRadius(12)
+              .padding(.horizontal, 16)
+      }
+}
+
+struct InfoCard: View {
+      let label: String
+      let value: String
+      let dotColor: Color
+                  
+      var body: some View {
+          HStack(alignment: .top, spacing: 12) {
+              Circle()
+                  .fill(dotColor)
+                  .frame(width: 8, height: 8)
+                  .padding(.top, 6)
+              VStack(alignment: .leading, spacing: 4) {
+                  Text(label)
+                      .font(.system(size: 12))
+                      .foregroundColor(.white.opacity(0.5))
+                  Text(value)
+                      .font(.system(size: 16, weight: .semibold))
+                      .foregroundColor(.white)
+              }
+              Spacer()
+          }
+          .padding(16)
+          .background(Color(red: 0.09, green: 0.08, blue: 0.15))
+          .cornerRadius(12)
+      }
+  }
+
+  struct InfoList: View {
+      let cards: [(label: String, value: String, color: Color)]
+                                                                                                                                                                                      
+      var body: some View {
+          VStack(spacing: 10) {
+              ForEach(cards, id: \.label) { card in
+                  InfoCard(label: card.label, value: card.value, dotColor: card.color)
+              }
+          }
+          .padding(.horizontal, 16)
+      }
+  }
+ 
+
+
 
 #Preview {
     ProfileView()
