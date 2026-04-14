@@ -7,11 +7,17 @@
 
 import SwiftUI
 
+import FirebaseCore
+
 @main
 struct ios_club_project_sp26App: App {
+    init() {
+        FirebaseApp.configure()
+    }
     var body: some Scene {
         WindowGroup {
             ContentView()
         }
     }
 }
+

@@ -1,187 +1,139 @@
-// Define all data structures
-
 import SwiftUI
+import FirebaseFirestore
 
-// 1. Profile Model
-struct Profile: Identifiable {
-    let id: UUID
-    let initials: String
-    let name: String
-    let age: Int
-    let location: String
-    let vibe: String
-    let major: String
-    let favSong: String
-    let origin: String
-    let mbti: String
-    let routine: String
-    let hobbies: String
-    let funFact: String
-    let accentColor: Color
-    var score: Int
-    var smashes: Int
-    var passes: Int
-    
-    init(
-        initials: String, name: String, age: Int, location: String,
-        vibe: String, major: String, favSong: String, origin: String,
-        mbti: String, routine: String, hobbies: String, funFact: String,
-        accentColor: Color, score: Int, smashes: Int, passes: Int
-    ) {
-        self.id = UUID()
-        self.initials = initials
-        self.name = name
-        self.age = age
-        self.location = location
-        self.vibe = vibe
-        self.major = major
-        self.favSong = favSong
-        self.origin = origin
-        self.mbti = mbti
-        self.routine = routine
-        self.hobbies = hobbies
-        self.funFact = funFact
-        self.accentColor = accentColor
-        self.score = score
-        self.smashes = smashes
-        self.passes = passes
-    }
-}
+// MARK: - Vote Type
 
-// 2. Vote Type
 enum VoteType {
     case smash
     case pass
     case skip
 }
 
-// 3. app data
+// MARK: - UserProfile (stored in Firestore, used everywhere)
+
+struct UserProfile: Identifiable {
+    var id: String = ""
+    var name: String = ""
+    var mbti: String = ""
+    var hobbies: String = ""    // "Accidental Rizz Hobbies"
+    var anthem: String = ""     // "Delusional Anthem"
+    var routine: String = ""    // "Unhinged Routine"
+    var homeTurf: String = ""   // "Home Turf"
+    var major: String = ""
+    var coreVibe: String = ""   // "Core Vibe"
+    var funFact: String = ""
+    var score: Int = 0
+    var smashes: Int = 0
+    var passes: Int = 0
+    var rank: Int = 0
+
+    // Computed from name
+    var initials: String {
+        name.split(separator: " ")
+            .prefix(2)
+            .compactMap { $0.first }
+            .map(String.init)
+            .joined()
+            .uppercased()
+    }
+
+    // Deterministic accent color based on user ID
+    var accentColor: Color {
+        let palette: [Color] = [
+            AppTheme.purple, AppTheme.blue, AppTheme.pink,
+            AppTheme.green, AppTheme.orange, AppTheme.yellow
+        ]
+        let index = ((id.hashValue % palette.count) + palette.count) % palette.count
+        return palette[index]
+    }
+}
+
+// MARK: - AppData (voting state + Firestore)
+
 @Observable
 class AppData {
-    
-    // current login user data
-    var currentUser = UserProfile(
-        initials: "JK", name: "Jordan Kim", age: 21,
-        location: "Atlanta, GA", vibe: "Golden Hour Vibes",
-        vibeDesc: "calm but make it iconic",
-        major: "Business & Design (Double Major)",
-        school: "Georgia Tech", mbti: "INFJ",
-        favSong: "\"Golden Hour\" by JVKE",
-        origin: "Seoul, South Korea",
-        routine: "Morning runs + iced matcha",
-        accentColor: AppTheme.purple,
-        score: 847, rank: 4, smashes: 124, passes: 38
-    )
-    
-    // All profiles
-    var profiles: [Profile] = SampleData.profiles
-    
+    var allProfiles: [UserProfile] = []
     var currentVoteIndex: Int = 0
-    var totalVotes: Int = 12
-    
-    // Leaderboard
-    var leaderboard: [Profile] {
-        profiles.sorted { $0.score > $1.score }
+    var totalVotes: Int = 0
+    var isLoading: Bool = false
+    var currentUserUID: String = ""
+
+    private let db = Firestore.firestore()
+
+    // Other users to vote on (excludes self)
+    var voteProfiles: [UserProfile] {
+        allProfiles.filter { $0.id != currentUserUID }
     }
-    
-    // currently voted profile
-    var currentProfile: Profile? {
-        guard !profiles.isEmpty else { return nil }
-        return profiles[currentVoteIndex % profiles.count]
+
+    // Current card to show
+    var currentProfile: UserProfile? {
+        guard !voteProfiles.isEmpty else { return nil }
+        return voteProfiles[currentVoteIndex % voteProfiles.count]
     }
-    
-    // logic
-    func vote(_ type: VoteType) {
-        guard let current = currentProfile,
-              let index = profiles.firstIndex(where: { $0.id == current.id }) else { return }
-        
+
+    // Sorted leaderboard (all users including self)
+    var leaderboard: [UserProfile] {
+        allProfiles.sorted { $0.score > $1.score }
+    }
+
+    // MARK: - Fetch all users from Firestore
+
+    func fetchProfiles() {
+        isLoading = true
+        db.collection("users").getDocuments { [weak self] snapshot, error in
+            DispatchQueue.main.async {
+                self?.isLoading = false
+                guard let docs = snapshot?.documents else { return }
+                self?.allProfiles = docs.map { doc in
+                    let data = doc.data()
+                    var p = UserProfile()
+                    p.id       = doc.documentID
+                    p.name     = data["name"]     as? String ?? ""
+                    p.mbti     = data["mbti"]     as? String ?? ""
+                    p.hobbies  = data["hobbies"]  as? String ?? ""
+                    p.anthem   = data["anthem"]   as? String ?? ""
+                    p.routine  = data["routine"]  as? String ?? ""
+                    p.homeTurf = data["homeTurf"] as? String ?? ""
+                    p.major    = data["major"]    as? String ?? ""
+                    p.coreVibe = data["coreVibe"] as? String ?? ""
+                    p.funFact  = data["funFact"]  as? String ?? ""
+                    p.score    = data["score"]    as? Int ?? 0
+                    p.smashes  = data["smashes"]  as? Int ?? 0
+                    p.passes   = data["passes"]   as? Int ?? 0
+                    return p
+                }
+            }
+        }
+    }
+
+    // MARK: - Vote and write back to Firestore
+
+    func vote(_ type: VoteType, targetID: String = "") {
         switch type {
         case .smash:
-            profiles[index].score += 15
-            profiles[index].smashes += 1
+            if let index = allProfiles.firstIndex(where: { $0.id == targetID }) {
+                allProfiles[index].score += 15
+                allProfiles[index].smashes += 1
+                writeVote(uid: targetID, scoreDelta: 15, smashDelta: 1, passDelta: 0)
+            }
         case .pass:
-            profiles[index].score -= 5
-            profiles[index].passes += 1
+            if let index = allProfiles.firstIndex(where: { $0.id == targetID }) {
+                allProfiles[index].score -= 5
+                allProfiles[index].passes += 1
+                writeVote(uid: targetID, scoreDelta: -5, smashDelta: 0, passDelta: 1)
+            }
         case .skip:
             break
         }
-        
         currentVoteIndex += 1
         totalVotes += 1
     }
-}
- 
-// MARK: - User Profile (Current User)
-struct UserProfile {
-    let initials: String
-    let name: String
-    let age: Int
-    let location: String
-    let vibe: String
-    let vibeDesc: String
-    let major: String
-    let school: String
-    let mbti: String
-    let favSong: String
-    let origin: String
-    let routine: String
-    let accentColor: Color
-    var score: Int
-    var rank: Int
-    var smashes: Int
-    var passes: Int
-}
- 
-// MARK: - Sample Data
-struct SampleData {
-    static let profiles: [Profile] = [
-        Profile(
-            initials: "AM", name: "Alex Morales", age: 22, location: "Atlanta, GA",
-            vibe: "Main Character Energy", major: "Computer Science",
-            favSong: "Blinding Lights", origin: "Puerto Rico", mbti: "ENFP",
-            routine: "Morning person", hobbies: "Dance, coding",
-            funFact: "I once ate 12 tacos in one sitting",
-            accentColor: AppTheme.purple, score: 1204, smashes: 189, passes: 42
-        ),
-        Profile(
-            initials: "SR", name: "Sam Rivera", age: 20, location: "Miami, FL",
-            vibe: "Chill & Mysterious", major: "Psychology",
-            favSong: "Sweater Weather", origin: "Colombia", mbti: "INTJ",
-            routine: "Night owl", hobbies: "Guitar, journaling",
-            funFact: "I can solve a Rubik's cube in under 2 minutes",
-            accentColor: AppTheme.blue, score: 1098, smashes: 164, passes: 51
-        ),
-        Profile(
-            initials: "CT", name: "Casey Tran", age: 21, location: "San Jose, CA",
-            vibe: "Creative Chaos", major: "Art & Design",
-            favSong: "Redbone", origin: "Vietnam", mbti: "INFP",
-            routine: "Whenever I wake up", hobbies: "Painting, skating",
-            funFact: "I've been to 14 countries before turning 21",
-            accentColor: AppTheme.yellow, score: 976, smashes: 145, passes: 58
-        ),
-        Profile(
-            initials: "RB", name: "Riley Brooks", age: 23, location: "Chicago, IL",
-            vibe: "Night Owl Scholar", major: "Physics",
-            favSong: "Starboy", origin: "Nigeria", mbti: "INTP",
-            routine: "2am study sessions", hobbies: "Chess, stargazing",
-            funFact: "I memorized 200 digits of pi for fun",
-            accentColor: AppTheme.green, score: 801, smashes: 120, passes: 64
-        ),
-        Profile(
-            initials: "ML", name: "Morgan Lee", age: 19, location: "Seattle, WA",
-            vibe: "Soft & Bold", major: "English Literature",
-            favSong: "Cruel Summer", origin: "South Korea", mbti: "ENFJ",
-            routine: "Morning yoga + tea", hobbies: "Writing, hiking",
-            funFact: "I once read 52 books in one year",
-            accentColor: AppTheme.pink, score: 774, smashes: 112, passes: 70
-        ),
-        Profile(
-            initials: "DP", name: "Dakota Price", age: 22, location: "Austin, TX",
-            vibe: "Chaos Coordinator", major: "Business",
-            favSong: "HUMBLE.", origin: "Texas", mbti: "ESTP",
-            routine: "Gym at 6am sharp", hobbies: "Basketball, cooking",
-            funFact: "I accidentally started a viral TikTok trend",
-            accentColor: AppTheme.orange, score: 752, smashes: 108, passes: 73
-        ),
-    ]
+
+    private func writeVote(uid: String, scoreDelta: Int, smashDelta: Int, passDelta: Int) {
+        db.collection("users").document(uid).updateData([
+            "score":   FieldValue.increment(Int64(scoreDelta)),
+            "smashes": FieldValue.increment(Int64(smashDelta)),
+            "passes":  FieldValue.increment(Int64(passDelta))
+        ])
+    }
 }
