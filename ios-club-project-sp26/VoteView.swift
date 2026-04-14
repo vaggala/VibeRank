@@ -1,43 +1,52 @@
-
 import SwiftUI
 
 struct VoteView: View {
     var appData: AppData
-    
+
     @State private var dragOffset: CGSize = .zero
     @State private var cardOpacity: Double = 1.0
-    @State private var showNextCard = false
-    
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            headerSection
-            progressBar
-            
-            if let profile = appData.currentProfile {
-                profileCard(profile: profile)
-                actionButtons(profile: profile)
+        ScrollView(showsIndicators: false) {
+            VStack(alignment: .leading, spacing: 0) {
+                headerSection
+                progressBar
+
+                if appData.isLoading && appData.voteProfiles.isEmpty {
+                    loadingState
+                } else if let profile = appData.currentProfile {
+                    profileCard(profile: profile)
+                    actionButtons(profile: profile)
+                } else {
+                    emptyState
+                }
+
+                Spacer()
             }
-            
-            Spacer()
+            .padding(.horizontal, 16)
         }
-        .padding(.horizontal, 16)
+        .refreshable {
+            appData.fetchProfiles()
+        }
     }
-    
-    // Header
+
+    // MARK: - Header
+
     private var headerSection: some View {
         VStack(alignment: .leading, spacing: 2) {
             Text("Vibe Check")
                 .font(.system(size: 24, weight: .bold, design: .rounded))
                 .foregroundColor(AppTheme.text)
-            
+
             Text("Does their energy match yours?")
                 .font(.system(size: 13))
                 .foregroundColor(AppTheme.textDim)
         }
         .padding(.bottom, 12)
     }
-    
-    // Progress Bar
+
+    // MARK: - Progress Bar
+
     private var progressBar: some View {
         HStack(spacing: 8) {
             GeometryReader { geo in
@@ -45,7 +54,7 @@ struct VoteView: View {
                     RoundedRectangle(cornerRadius: 4)
                         .fill(AppTheme.surface)
                         .frame(height: 4)
-                    
+
                     RoundedRectangle(cornerRadius: 4)
                         .fill(
                             LinearGradient(
@@ -62,25 +71,25 @@ struct VoteView: View {
                 }
             }
             .frame(height: 4)
-            
-            Text("\(appData.totalVotes) / 30")
+
+            Text("\(appData.totalVotes) voted")
                 .font(.system(size: 12))
                 .foregroundColor(AppTheme.textDim)
                 .monospacedDigit()
         }
         .padding(.bottom, 16)
     }
-    
-    // Profile Card
-    private func profileCard(profile: Profile) -> some View {
+
+    // MARK: - Profile Card
+
+    private func profileCard(profile: UserProfile) -> some View {
         VStack(spacing: 0) {
             cardHeader(profile: profile)
-            
+
             infoGrid(profile: profile)
                 .padding(.horizontal, 16)
                 .padding(.top, 4)
-            
-            // Fun Fact
+
             Text("Fun fact: \(profile.funFact)")
                 .font(.system(size: 13).italic())
                 .foregroundColor(AppTheme.yellow)
@@ -110,11 +119,9 @@ struct VoteView: View {
                 }
                 .onEnded { value in
                     if value.translation.width > 100 {
-                        // right = Smash
-                        swipeAway(direction: .smash)
+                        swipeAway(direction: .smash, profileID: profile.id)
                     } else if value.translation.width < -100 {
-                        // left = Pass
-                        swipeAway(direction: .pass)
+                        swipeAway(direction: .pass, profileID: profile.id)
                     } else {
                         withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
                             dragOffset = .zero
@@ -130,9 +137,10 @@ struct VoteView: View {
         ))
         .padding(.bottom, 14)
     }
-    
-    // Card Header
-    private func cardHeader(profile: Profile) -> some View {
+
+    // MARK: - Card Header
+
+    private func cardHeader(profile: UserProfile) -> some View {
         VStack(spacing: 0) {
             AvatarView(
                 initials: profile.initials,
@@ -141,19 +149,18 @@ struct VoteView: View {
                 showGlow: true
             )
             .padding(.top, 28)
-            
+
             Text(profile.name)
                 .font(.system(size: 22, weight: .bold, design: .rounded))
                 .foregroundColor(AppTheme.text)
                 .padding(.top, 14)
-            
-            Text("\(profile.age) · \(profile.location)")
+
+            Text(profile.homeTurf)
                 .font(.system(size: 13))
                 .foregroundColor(AppTheme.textDim)
                 .padding(.top, 2)
-            
-            // Vibe title
-            Text(profile.vibe)
+
+            Text(profile.coreVibe)
                 .font(.system(size: 12, weight: .semibold))
                 .foregroundColor(AppTheme.green)
                 .padding(.horizontal, 14)
@@ -172,17 +179,19 @@ struct VoteView: View {
             )
         )
     }
-    
-    private func infoGrid(profile: Profile) -> some View {
+
+    // MARK: - Info Grid
+
+    private func infoGrid(profile: UserProfile) -> some View {
         let items: [(String, String)] = [
-            ("Major", profile.major),
-            ("Fav Song", profile.favSong),
-            ("Origin", profile.origin),
-            ("MBTI", profile.mbti),
-            ("Routine", profile.routine),
-            ("Hobbies", profile.hobbies),
+            ("Major",           profile.major),
+            ("MBTI",            profile.mbti),
+            ("Anthem",          profile.anthem),
+            ("Routine",         profile.routine),
+            ("Home Turf",       profile.homeTurf),
+            ("Rizz Hobbies",    profile.hobbies),
         ]
-        
+
         return VStack(spacing: 1) {
             ForEach(0..<3, id: \.self) { row in
                 HStack(spacing: 1) {
@@ -197,18 +206,19 @@ struct VoteView: View {
                 .stroke(AppTheme.cardBorder, lineWidth: 1)
         )
     }
-    
-    // Action Buttons
-    private func actionButtons(profile: Profile) -> some View {
+
+    // MARK: - Action Buttons
+
+    private func actionButtons(profile: UserProfile) -> some View {
         HStack(spacing: 24) {
             VoteActionButton(
                 icon: "xmark",
                 label: "Pass",
                 color: AppTheme.red,
                 size: 58,
-                action: { swipeAway(direction: .pass) }
+                action: { swipeAway(direction: .pass, profileID: profile.id) }
             )
-            
+
             VoteActionButton(
                 icon: "forward.fill",
                 label: "Skip",
@@ -220,36 +230,70 @@ struct VoteView: View {
                     }
                 }
             )
-            
+
             VoteActionButton(
                 icon: "heart.fill",
                 label: "Smash",
                 color: AppTheme.pink,
                 size: 58,
-                action: { swipeAway(direction: .smash) }
+                action: { swipeAway(direction: .smash, profileID: profile.id) }
             )
         }
         .frame(maxWidth: .infinity)
     }
-    
-    // Swipe Away Animation
-    private func swipeAway(direction: VoteType) {
+
+    // MARK: - Loading State
+
+    private var loadingState: some View {
+        VStack(spacing: 16) {
+            ProgressView()
+                .tint(AppTheme.purple)
+                .scaleEffect(1.5)
+            Text("Finding vibes...")
+                .font(.system(size: 14))
+                .foregroundColor(AppTheme.textDim)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.top, 80)
+    }
+
+    // MARK: - Empty State
+
+    private var emptyState: some View {
+        VStack(spacing: 16) {
+            Text("✨")
+                .font(.system(size: 48))
+
+            Text("No more profiles")
+                .font(.system(size: 18, weight: .bold, design: .rounded))
+                .foregroundColor(AppTheme.text)
+
+            Text("Check back later for more vibes")
+                .font(.system(size: 14))
+                .foregroundColor(AppTheme.textDim)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.top, 80)
+    }
+
+    // MARK: - Swipe Animation
+
+    private func swipeAway(direction: VoteType, profileID: String) {
         let xOffset: CGFloat = direction == .smash ? 500 : -500
-        
+
         withAnimation(.easeIn(duration: 0.3)) {
             dragOffset = CGSize(width: xOffset, height: 0)
             cardOpacity = 0
         }
-        
+
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
-            appData.vote(direction)
+            appData.vote(direction, targetID: profileID)
             dragOffset = .zero
             cardOpacity = 1.0
         }
     }
 }
 
-//Preview
 #Preview {
     ZStack {
         AppTheme.bg.ignoresSafeArea()

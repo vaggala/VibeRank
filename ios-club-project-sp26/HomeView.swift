@@ -1,10 +1,16 @@
-
 import SwiftUI
 
 struct HomeView: View {
     var appData: AppData
+    var currentUser: UserProfile
     var onStartVoting: () -> Void
-    
+
+    // Compute current user's rank from the full leaderboard
+    private var userRank: Int {
+        let board = appData.leaderboard
+        return (board.firstIndex(where: { $0.id == currentUser.id }) ?? 0) + 1
+    }
+
     var body: some View {
         ScrollView(showsIndicators: false) {
             VStack(spacing: 0) {
@@ -14,19 +20,24 @@ struct HomeView: View {
             }
             .padding(.horizontal, 16)
         }
+        .refreshable {
+            appData.fetchProfiles()
+        }
     }
-    
+
+    // MARK: - Header
+
     private var headerSection: some View {
         VStack(alignment: .leading, spacing: 0) {
             Text("VibeRank")
                 .font(.system(size: 26, weight: .bold, design: .rounded))
                 .foregroundColor(.white)
-            
+
             Text("See who's winning the vibe check")
                 .font(.system(size: 13))
                 .foregroundColor(.white.opacity(0.7))
                 .padding(.top, 2)
-            
+
             userRankCard
                 .padding(.top, 16)
         }
@@ -42,32 +53,32 @@ struct HomeView: View {
         .clipShape(RoundedRectangle(cornerRadius: 16))
         .padding(.bottom, 16)
     }
-    
+
     private var userRankCard: some View {
         HStack(spacing: 12) {
             AvatarView(
-                initials: appData.currentUser.initials,
-                color: appData.currentUser.accentColor,
+                initials: currentUser.initials,
+                color: AppTheme.purple,
                 size: 44
             )
-            
+
             VStack(alignment: .leading, spacing: 2) {
-                Text(appData.currentUser.name)
+                Text(currentUser.name)
                     .font(.system(size: 15, weight: .semibold))
                     .foregroundColor(.white)
-                
-                Text("\(appData.currentUser.score) Vibe Points")
+
+                Text("\(currentUser.score) Vibe Points")
                     .font(.system(size: 12))
                     .foregroundColor(.white.opacity(0.7))
-                
-                Text("Rank #\(appData.currentUser.rank) globally")
+
+                Text("Rank #\(userRank) globally")
                     .font(.system(size: 11))
                     .foregroundColor(.white.opacity(0.5))
             }
-            
+
             Spacer()
-            
-            Text("#\(appData.currentUser.rank)")
+
+            Text("#\(userRank)")
                 .font(.system(size: 12, weight: .bold))
                 .foregroundColor(.white)
                 .padding(.horizontal, 10)
@@ -79,7 +90,9 @@ struct HomeView: View {
         .background(.white.opacity(0.1))
         .clipShape(RoundedRectangle(cornerRadius: 12))
     }
-    
+
+    // MARK: - Start Voting Button
+
     private var startVotingButton: some View {
         Button(action: onStartVoting) {
             Text("Start Voting →")
@@ -100,48 +113,74 @@ struct HomeView: View {
         .buttonStyle(ScaleButtonStyle())
         .padding(.bottom, 24)
     }
-    
+
+    // MARK: - Leaderboard
+
     private var leaderboardSection: some View {
         VStack(spacing: 8) {
             HStack {
                 Text("Leaderboard")
                     .font(.system(size: 18, weight: .semibold, design: .rounded))
                     .foregroundColor(AppTheme.text)
-                
+
                 Spacer()
-                
+
                 Text("This Week")
                     .font(.system(size: 12, weight: .medium))
                     .foregroundColor(AppTheme.purple)
             }
             .padding(.bottom, 4)
-            
-            ForEach(Array(appData.leaderboard.enumerated()), id: \.element.id) { index, profile in
-                leaderboardRow(profile: profile, rank: index + 1)
+
+            if appData.isLoading && appData.leaderboard.isEmpty {
+                ProgressView()
+                    .tint(AppTheme.purple)
+                    .padding(.top, 20)
+            } else if appData.leaderboard.isEmpty {
+                Text("No data yet — be the first to vote!")
+                    .font(.system(size: 14))
+                    .foregroundColor(AppTheme.textDim)
+                    .padding(.top, 16)
+            } else {
+                ForEach(Array(appData.leaderboard.enumerated()), id: \.element.id) { index, profile in
+                    leaderboardRow(profile: profile, rank: index + 1)
+                }
             }
         }
     }
-    
-    private func leaderboardRow(profile: Profile, rank: Int) -> some View {
-        let scoreColor: Color = rank <= 3
-            ? (rank == 1 ? AppTheme.gold : rank == 2 ? AppTheme.silver : AppTheme.bronze)
-            : AppTheme.green
-        
+
+    private func leaderboardRow(profile: UserProfile, rank: Int) -> some View {
+        let scoreColor: Color = rank == 1 ? AppTheme.gold
+                              : rank == 2 ? AppTheme.silver
+                              : rank == 3 ? AppTheme.bronze
+                              : AppTheme.green
+        let isMe = profile.id == currentUser.id
+
         return HStack(spacing: 12) {
             RankBadge(rank: rank)
-            
+
             VStack(alignment: .leading, spacing: 2) {
-                Text(profile.name)
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(AppTheme.text)
-                
-                Text(profile.vibe)
+                HStack(spacing: 6) {
+                    Text(profile.name)
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(AppTheme.text)
+                    if isMe {
+                        Text("you")
+                            .font(.system(size: 10, weight: .semibold))
+                            .foregroundColor(AppTheme.purple)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(AppTheme.purple.opacity(0.15))
+                            .clipShape(Capsule())
+                    }
+                }
+
+                Text(profile.coreVibe)
                     .font(.system(size: 11))
                     .foregroundColor(AppTheme.textDim)
             }
-            
+
             Spacer()
-            
+
             Text("\(profile.score)")
                 .font(.system(size: 15, weight: .bold, design: .rounded))
                 .foregroundColor(scoreColor)
@@ -155,6 +194,6 @@ struct HomeView: View {
 #Preview {
     ZStack {
         AppTheme.bg.ignoresSafeArea()
-        HomeView(appData: AppData(), onStartVoting: {})
+        HomeView(appData: AppData(), currentUser: UserProfile(), onStartVoting: {})
     }
 }
