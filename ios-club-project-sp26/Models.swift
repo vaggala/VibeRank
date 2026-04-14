@@ -1,4 +1,5 @@
 import SwiftUI
+import FirebaseAuth
 import FirebaseFirestore
 
 // MARK: - Vote Type
@@ -15,16 +16,16 @@ struct UserProfile: Identifiable {
     var id: String = ""
     var name: String = ""
     var mbti: String = ""
-    var hobbies: String = ""    // "Accidental Rizz Hobbies"
-    var anthem: String = ""     // "Delusional Anthem"
-    var routine: String = ""    // "Unhinged Routine"
-    var homeTurf: String = ""   // "Home Turf"
+    var rizzHobbies: String = ""    // "Accidental Rizz Hobbies"
+    var anthem: String = ""         // "Delusional Anthem"
+    var routine: String = ""        // "Unhinged Routine"
+    var homeTurf: String = ""       // "Home Turf"
     var major: String = ""
-    var coreVibe: String = ""   // "Core Vibe"
+    var coreVibe: String = ""       // "Core Vibe"
     var funFact: String = ""
-    var score: Int = 0
-    var smashes: Int = 0
-    var passes: Int = 0
+    var personalScore: Int = 0
+    var smashCount: Int = 0
+    var passCount: Int = 0
     var rank: Int = 0
 
     // Computed from name
@@ -73,7 +74,7 @@ class AppData {
 
     // Sorted leaderboard (all users including self)
     var leaderboard: [UserProfile] {
-        allProfiles.sorted { $0.score > $1.score }
+        allProfiles.sorted { $0.personalScore > $1.personalScore }
     }
 
     // MARK: - Fetch all users from Firestore
@@ -87,19 +88,19 @@ class AppData {
                 self?.allProfiles = docs.map { doc in
                     let data = doc.data()
                     var p = UserProfile()
-                    p.id       = doc.documentID
-                    p.name     = data["name"]     as? String ?? ""
-                    p.mbti     = data["mbti"]     as? String ?? ""
-                    p.hobbies  = data["hobbies"]  as? String ?? ""
-                    p.anthem   = data["anthem"]   as? String ?? ""
-                    p.routine  = data["routine"]  as? String ?? ""
-                    p.homeTurf = data["homeTurf"] as? String ?? ""
-                    p.major    = data["major"]    as? String ?? ""
-                    p.coreVibe = data["coreVibe"] as? String ?? ""
-                    p.funFact  = data["funFact"]  as? String ?? ""
-                    p.score    = data["score"]    as? Int ?? 0
-                    p.smashes  = data["smashes"]  as? Int ?? 0
-                    p.passes   = data["passes"]   as? Int ?? 0
+                    p.id           = doc.documentID
+                    p.name         = data["name"]          as? String ?? ""
+                    p.mbti         = data["mbti"]          as? String ?? ""
+                    p.rizzHobbies  = (data["rizzHobbies"]  as? [String] ?? []).joined(separator: ", ")
+                    p.anthem       = data["anthem"]        as? String ?? ""
+                    p.routine      = data["routine"]       as? String ?? ""
+                    p.homeTurf     = data["homeTurf"]      as? String ?? ""
+                    p.major        = data["major"]         as? String ?? ""
+                    p.coreVibe     = data["coreVibe"]      as? String ?? ""
+                    p.funFact      = data["funFact"]       as? String ?? ""
+                    p.personalScore = data["personalScore"] as? Int ?? 0
+                    p.smashCount   = data["smashCount"]    as? Int ?? 0
+                    p.passCount    = data["passCount"]     as? Int ?? 0
                     return p
                 }
             }
@@ -112,15 +113,14 @@ class AppData {
         switch type {
         case .smash:
             if let index = allProfiles.firstIndex(where: { $0.id == targetID }) {
-                allProfiles[index].score += 15
-                allProfiles[index].smashes += 1
-                writeVote(uid: targetID, scoreDelta: 15, smashDelta: 1, passDelta: 0)
+                allProfiles[index].personalScore += 100
+                allProfiles[index].smashCount += 1
+                writeVote(uid: targetID, isSmash: true)
             }
         case .pass:
             if let index = allProfiles.firstIndex(where: { $0.id == targetID }) {
-                allProfiles[index].score -= 5
-                allProfiles[index].passes += 1
-                writeVote(uid: targetID, scoreDelta: -5, smashDelta: 0, passDelta: 1)
+                allProfiles[index].passCount += 1
+                writeVote(uid: targetID, isSmash: false)
             }
         case .skip:
             break
@@ -129,11 +129,26 @@ class AppData {
         totalVotes += 1
     }
 
-    private func writeVote(uid: String, scoreDelta: Int, smashDelta: Int, passDelta: Int) {
-        db.collection("users").document(uid).updateData([
-            "score":   FieldValue.increment(Int64(scoreDelta)),
-            "smashes": FieldValue.increment(Int64(smashDelta)),
-            "passes":  FieldValue.increment(Int64(passDelta))
-        ])
+    private func writeVote(uid: String, isSmash: Bool) {
+        guard let voterId = Auth.auth().currentUser?.uid else { return }
+
+        // Update target user's score counters
+        var updates: [String: Any] = [
+            "smashCount": FieldValue.increment(Int64(isSmash ? 1 : 0)),
+            "passCount":  FieldValue.increment(Int64(isSmash ? 0 : 1))
+        ]
+        if isSmash {
+            updates["personalScore"] = FieldValue.increment(Int64(100))
+        }
+        db.collection("users").document(uid).updateData(updates)
+
+        // Record vote history in votes collection
+        let voteData: [String: Any] = [
+            "voterId":      voterId,
+            "targetUserId": uid,
+            "voteType":     isSmash ? "smash" : "pass",
+            "createdAt":    Date()
+        ]
+        db.collection("votes").addDocument(data: voteData)
     }
 }

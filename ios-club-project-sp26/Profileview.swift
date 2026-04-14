@@ -92,10 +92,10 @@ struct ProfileView: View {
 
     private var statsRow: some View {
         HStack(spacing: 0) {
-            statItem(value: "\(user.score)", label: "Vibe Pts")
+            statItem(value: "\(user.personalScore)", label: "Vibe Pts")
             statItem(value: "#\(user.rank == 0 ? "-" : "\(user.rank)")", label: "Rank")
-            statItem(value: "\(user.smashes)", label: "Smashes", highlight: true)
-            statItem(value: "\(user.passes)", label: "Passes")
+            statItem(value: "\(user.smashCount)", label: "Smashes", highlight: true)
+            statItem(value: "\(user.passCount)", label: "Passes")
         }
         .padding(.vertical, 14)
         .cardStyle()
@@ -165,7 +165,7 @@ struct ProfileView: View {
             DetailItem(icon: "🎵", label: "Delusional Anthem",   value: user.anthem,   dotColor: AppTheme.pink),
             DetailItem(icon: "☀️", label: "Unhinged Routine",    value: user.routine,  dotColor: AppTheme.yellow),
             DetailItem(icon: "🌍", label: "Home Turf",           value: user.homeTurf, dotColor: AppTheme.orange),
-            DetailItem(icon: "✨", label: "Rizz Hobbies",        value: user.hobbies,  dotColor: AppTheme.green),
+            DetailItem(icon: "✨", label: "Rizz Hobbies",        value: user.rizzHobbies,  dotColor: AppTheme.green),
             DetailItem(icon: "⭐", label: "Fun Fact",            value: user.funFact,  dotColor: AppTheme.gold),
         ]
     }

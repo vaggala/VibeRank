@@ -189,7 +189,7 @@ struct VoteView: View {
             ("Anthem",          profile.anthem),
             ("Routine",         profile.routine),
             ("Home Turf",       profile.homeTurf),
-            ("Rizz Hobbies",    profile.hobbies),
+            ("Rizz Hobbies",    profile.rizzHobbies),
         ]
 
         return VStack(spacing: 1) {

@@ -33,7 +33,7 @@ struct EditProfileView: View {
         let u = authManager.currentUser ?? UserProfile()
         _name     = State(initialValue: u.name)
         _mbti     = State(initialValue: u.mbti)
-        _hobbies  = State(initialValue: u.hobbies)
+        _hobbies  = State(initialValue: u.rizzHobbies)
         _anthem   = State(initialValue: u.anthem)
         _routine  = State(initialValue: u.routine)
         _homeTurf = State(initialValue: u.homeTurf)
@@ -175,7 +175,7 @@ struct EditProfileView: View {
                 var updated = authManager.currentUser ?? UserProfile()
                 updated.name     = name.trimmingCharacters(in: .whitespaces)
                 updated.mbti     = mbti
-                updated.hobbies  = hobbies.trimmingCharacters(in: .whitespaces)
+                updated.rizzHobbies  = hobbies.trimmingCharacters(in: .whitespaces)
                 updated.anthem   = anthem.trimmingCharacters(in: .whitespaces)
                 updated.routine  = routine.trimmingCharacters(in: .whitespaces)
                 updated.homeTurf = homeTurf.trimmingCharacters(in: .whitespaces)
