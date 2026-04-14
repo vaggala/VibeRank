@@ -67,7 +67,7 @@ struct HomeView: View {
                     .font(.system(size: 15, weight: .semibold))
                     .foregroundColor(.white)
 
-                Text("\(currentUser.score) Vibe Points")
+                Text("\(currentUser.personalScore) Vibe Points")
                     .font(.system(size: 12))
                     .foregroundColor(.white.opacity(0.7))
 
@@ -181,7 +181,7 @@ struct HomeView: View {
 
             Spacer()
 
-            Text("\(profile.score)")
+            Text("\(profile.personalScore)")
                 .font(.system(size: 15, weight: .bold, design: .rounded))
                 .foregroundColor(scoreColor)
         }

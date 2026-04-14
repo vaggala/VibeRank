@@ -81,18 +81,18 @@ class AuthManager {
         await MainActor.run { isLoading = true }
 
         let data: [String: Any] = [
-            "name": profile.name,
-            "mbti": profile.mbti,
-            "hobbies": profile.hobbies,
-            "anthem": profile.anthem,
-            "routine": profile.routine,
-            "homeTurf": profile.homeTurf,
-            "major": profile.major,
-            "coreVibe": profile.coreVibe,
-            "funFact": profile.funFact,
-            "score": profile.score,
-            "smashes": profile.smashes,
-            "passes": profile.passes
+            "name":          profile.name,
+            "mbti":          profile.mbti,
+            "rizzHobbies":   profile.rizzHobbies.isEmpty ? [] : [profile.rizzHobbies],
+            "anthem":        profile.anthem,
+            "routine":       profile.routine,
+            "homeTurf":      profile.homeTurf,
+            "major":         profile.major,
+            "coreVibe":      profile.coreVibe,
+            "funFact":       profile.funFact,
+            "personalScore": profile.personalScore,
+            "smashCount":    profile.smashCount,
+            "passCount":     profile.passCount
         ]
 
         do {
@@ -129,19 +129,19 @@ class AuthManager {
                     }
 
                     var profile = UserProfile()
-                    profile.id       = uid
-                    profile.name     = data["name"]     as? String ?? ""
-                    profile.mbti     = data["mbti"]     as? String ?? ""
-                    profile.hobbies  = data["hobbies"]  as? String ?? ""
-                    profile.anthem   = data["anthem"]   as? String ?? ""
-                    profile.routine  = data["routine"]  as? String ?? ""
-                    profile.homeTurf = data["homeTurf"] as? String ?? ""
-                    profile.major    = data["major"]    as? String ?? ""
-                    profile.coreVibe = data["coreVibe"] as? String ?? ""
-                    profile.funFact  = data["funFact"]  as? String ?? ""
-                    profile.score    = data["score"]    as? Int ?? 0
-                    profile.smashes  = data["smashes"]  as? Int ?? 0
-                    profile.passes   = data["passes"]   as? Int ?? 0
+                    profile.id            = uid
+                    profile.name          = data["name"]          as? String ?? ""
+                    profile.mbti          = data["mbti"]          as? String ?? ""
+                    profile.rizzHobbies   = (data["rizzHobbies"]  as? [String] ?? []).joined(separator: ", ")
+                    profile.anthem        = data["anthem"]        as? String ?? ""
+                    profile.routine       = data["routine"]       as? String ?? ""
+                    profile.homeTurf      = data["homeTurf"]      as? String ?? ""
+                    profile.major         = data["major"]         as? String ?? ""
+                    profile.coreVibe      = data["coreVibe"]      as? String ?? ""
+                    profile.funFact       = data["funFact"]       as? String ?? ""
+                    profile.personalScore = data["personalScore"] as? Int ?? 0
+                    profile.smashCount    = data["smashCount"]    as? Int ?? 0
+                    profile.passCount     = data["passCount"]     as? Int ?? 0
 
                     self?.currentUser = profile
                     self?.isLoggedIn = true

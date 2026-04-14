@@ -309,7 +309,7 @@ struct OnboardingView: View {
         var profile = UserProfile()
         profile.name     = name.trimmingCharacters(in: .whitespaces)
         profile.mbti     = mbti
-        profile.hobbies  = hobbies.trimmingCharacters(in: .whitespaces)
+        profile.rizzHobbies  = hobbies.trimmingCharacters(in: .whitespaces)
         profile.anthem   = anthem.trimmingCharacters(in: .whitespaces)
         profile.routine  = routine.trimmingCharacters(in: .whitespaces)
         profile.homeTurf = homeTurf.trimmingCharacters(in: .whitespaces)
