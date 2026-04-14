@@ -23,8 +23,8 @@ struct ios_club_project_sp26App: App {
     var body: some Scene {
         WindowGroup {
 //            ContentView()
-//            AuthView() // for testing purposes
-            RootView()
+            AuthView() // for testing purposes
+            VoteTest()
         }
     }
 }

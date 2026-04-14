@@ -29,10 +29,12 @@ class ProfileViewModel {
         }
     }
     
-    func signIn(email: String, password: String) async {
+    func signIn(email: String, password: String) async -> Bool {
         if let _ = await service.signIn(email: email, password: password) {
             await loadAllData()
+            return true
         }
+        return false
     }
 
     func signOut() {
@@ -41,11 +43,83 @@ class ProfileViewModel {
     }
     
     func loadAllData() async {
-        if let fetchedUser = await service.fetchProfile() {
+        if let fetchedUser = await service.fetchMyProfile() {
             user = fetchedUser
         } else {
             print("error")
             user = nil
+        }
+    }
+    
+    func updateName(name: String) async {
+        let success = await service.updateProfile(name: name)
+        
+        if success {
+            user?.name = name
+        }
+    }
+    
+    func updateMBTI(mbti: String) async {
+        let success = await service.updateProfile(mbti: mbti)
+        
+        if success {
+            user?.mbti = mbti
+        }
+    }
+    
+    func updateRizzHobbies(_ hobbies: [String]) async {
+        let success = await service.updateProfile(rizzHobbies: hobbies)
+
+        if success {
+            user?.rizzHobbies = hobbies
+        }
+    }
+    
+    func updateAnthem(anthem: String) async {
+        let success = await service.updateProfile(anthem: anthem)
+
+        if success {
+            user?.anthem = anthem
+        }
+    }
+
+    func updateRoutine(routine: String) async {
+        let success = await service.updateProfile(routine: routine)
+
+        if success {
+            user?.routine = routine
+        }
+    }
+
+    func updateHomeTurf(homeTurf: String) async {
+        let success = await service.updateProfile(homeTurf: homeTurf)
+
+        if success {
+            user?.homeTurf = homeTurf
+        }
+    }
+
+    func updateMajor(major: String) async {
+        let success = await service.updateProfile(major: major)
+
+        if success {
+            user?.major = major
+        }
+    }
+
+    func updateCoreVibe(coreVibe: String) async {
+        let success = await service.updateProfile(coreVibe: coreVibe)
+
+        if success {
+            user?.coreVibe = coreVibe
+        }
+    }
+
+    func updateFunFact(funFact: String) async {
+        let success = await service.updateProfile(funFact: funFact)
+
+        if success {
+            user?.funFact = funFact
         }
     }
 }

@@ -14,18 +14,25 @@ import SwiftUI
 
 struct profileView_test: View {
     @Environment(ProfileViewModel.self) var vm
+
     var body: some View {
-        VStack(spacing: 16) {
+        VStack(alignment: .leading, spacing: 16) {
             if let user = vm.user {
                 Text("Name: \(user.name)")
                 Text("UID: \(user.uid)")
                 Text("Score: \(user.personalScore)")
                 Text("Rank: \(user.leaderboardRank)")
-                Text("Hobbies: \(user.hobbies.joined(separator: ", "))")
+                Text("Smashes: \(user.smashCount)")
+                Text("Passes: \(user.passCount)")
+                Text("MBTI: \(user.mbti)")
 
-                if let mbti = user.mbti, !mbti.isEmpty {
-                    Text("MBTI: \(mbti)")
-                }
+                Text("Rizz Hobbies: \(user.rizzHobbies.joined(separator: ", "))")
+                Text("Anthem: \(user.anthem)")
+                Text("Routine: \(user.routine)")
+                Text("Home Turf: \(user.homeTurf)")
+                Text("Major: \(user.major)")
+                Text("Core Vibe: \(user.coreVibe)")
+                Text("Fun Fact: \(user.funFact)")
             } else {
                 ProgressView("Loading profile...")
             }
@@ -46,6 +53,6 @@ struct profileView_test: View {
 
 #Preview {
     let vm = ProfileViewModel()
-    profileView_test().environment(vm)
+    profileView_test()
+        .environment(vm)
 }
-
