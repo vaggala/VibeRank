@@ -6,18 +6,25 @@
 //
 
 import SwiftUI
-
 import FirebaseCore
 
-@main
-struct ios_club_project_sp26App: App {
-    init() {
+class AppDelegate: NSObject, UIApplicationDelegate {
+    func application(_ application: UIApplication,
+                   didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
         FirebaseApp.configure()
-    }
-    var body: some Scene {
-        WindowGroup {
-            ContentView()
-        }
+
+        return true
     }
 }
 
+@main
+struct ios_club_project_sp26App: App {
+    @UIApplicationDelegateAdaptor(AppDelegate.self) var delegate
+    var body: some Scene {
+        WindowGroup {
+//            ContentView()
+//            AuthView() // for testing purposes
+            RootView()
+        }
+    }
+}
