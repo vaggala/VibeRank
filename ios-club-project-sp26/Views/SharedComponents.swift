@@ -35,10 +35,9 @@ struct VoteActionButton: View {
     let label: String
     let color: Color
     var size: CGFloat = 58
+    var externallyPressed: Bool = false
     let action: () -> Void
-    
-    @State private var isPressed = false
-    
+
     var body: some View {
         Button(action: action) {
             VStack(spacing: 2) {
@@ -46,20 +45,22 @@ struct VoteActionButton: View {
                     Circle()
                         .stroke(color, lineWidth: 2.5)
                         .frame(width: size, height: size)
-                    
+
                     Circle()
-                        .fill(color.opacity(isPressed ? 0.15 : 0))
+                        .fill(color.opacity(externallyPressed ? 0.2 : 0))
                         .frame(width: size, height: size)
-                    
+
                     Image(systemName: icon)
                         .font(.system(size: size * 0.35, weight: .semibold))
                         .foregroundColor(color)
                 }
-                
+
                 Text(label)
                     .font(.system(size: 10, weight: .medium))
                     .foregroundColor(color)
             }
+            .scaleEffect(externallyPressed ? 0.9 : 1.0)
+            .animation(.easeInOut(duration: 0.15), value: externallyPressed)
         }
         .buttonStyle(ScaleButtonStyle())
     }
