@@ -74,8 +74,8 @@ struct CustomTabBar: View {
             tabItem(tab: .profile, icon: "person.fill",    label: "Profile", activeColor: AppTheme.pink)
         }
         .padding(.horizontal, 40)
-        .padding(.top, 12)
-        .padding(.bottom, 28)
+        .padding(.top, 20)
+        .padding(.bottom, 8)
         .background(
             LinearGradient(
                 colors: [AppTheme.bg, AppTheme.bg.opacity(0.95), AppTheme.bg.opacity(0)],
