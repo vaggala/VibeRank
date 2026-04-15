@@ -24,7 +24,7 @@ class ProfileViewModel {
     }
     
     func signUp(email: String, password: String, name: String) async {
-        if let id = await service.signUp(email: email, password: password, name: name) {
+        if let _ = await service.signUp(email: email, password: password, name: name) {
             await loadAllData()
         }
     }
