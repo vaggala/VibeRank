@@ -5,29 +5,25 @@ struct VoteView: View {
 
     @State private var dragOffset: CGSize = .zero
     @State private var cardOpacity: Double = 1.0
+    @State private var pressedButton: VoteType? = nil
 
     var body: some View {
-        ScrollView(showsIndicators: false) {
-            VStack(alignment: .leading, spacing: 0) {
-                headerSection
-                progressBar
+        VStack(alignment: .leading, spacing: 0) {
+            headerSection
+            progressBar
 
-                if appData.isLoading && appData.voteProfiles.isEmpty {
-                    loadingState
-                } else if let profile = appData.currentProfile {
-                    profileCard(profile: profile)
-                    actionButtons(profile: profile)
-                } else {
-                    emptyState
-                }
-
-                Spacer()
+            if appData.isLoading && appData.voteProfiles.isEmpty {
+                loadingState
+            } else if let profile = appData.currentProfile {
+                profileCard(profile: profile)
+                    .frame(maxHeight: .infinity)
+                actionButtons(profile: profile)
+                    .padding(.top, 16)
+            } else {
+                emptyState
             }
-            .padding(.horizontal, 16)
         }
-        .refreshable {
-            appData.fetchProfiles()
-        }
+        .padding(.horizontal, 16)
     }
 
     // MARK: - Header
@@ -118,13 +114,33 @@ struct VoteView: View {
                     dragOffset = value.translation
                 }
                 .onEnded { value in
-                    if value.translation.width > 100 {
-                        swipeAway(direction: .smash, profileID: profile.id)
-                    } else if value.translation.width < -100 {
-                        swipeAway(direction: .pass, profileID: profile.id)
+                    let dw = value.translation.width
+                    let dh = value.translation.height
+
+                    if abs(dw) > abs(dh) {
+                        // Horizontal-dominant drag: pass or smash
+                        if dw > 100 {
+                            swipeAway(direction: .smash, profileID: profile.id)
+                        } else if dw < -100 {
+                            swipeAway(direction: .pass, profileID: profile.id)
+                        } else {
+                            withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
+                                dragOffset = .zero
+                            }
+                        }
                     } else {
-                        withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
-                            dragOffset = .zero
+                        // Vertical-dominant drag: skip (card flies the way you swiped)
+                        if abs(dh) > 100 {
+                            let exitY: CGFloat = dh > 0 ? 800 : -800
+                            swipeAway(
+                                direction: .skip,
+                                profileID: profile.id,
+                                exitOffset: CGSize(width: 0, height: exitY)
+                            )
+                        } else {
+                            withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
+                                dragOffset = .zero
+                            }
                         }
                     }
                 }
@@ -216,6 +232,7 @@ struct VoteView: View {
                 label: "Pass",
                 color: AppTheme.red,
                 size: 58,
+                externallyPressed: pressedButton == .pass,
                 action: { swipeAway(direction: .pass, profileID: profile.id) }
             )
 
@@ -224,6 +241,7 @@ struct VoteView: View {
                 label: "Skip",
                 color: AppTheme.textDim,
                 size: 46,
+                externallyPressed: pressedButton == .skip,
                 action: {
                     withAnimation(.easeInOut(duration: 0.3)) {
                         appData.vote(.skip)
@@ -236,6 +254,7 @@ struct VoteView: View {
                 label: "Smash",
                 color: AppTheme.pink,
                 size: 58,
+                externallyPressed: pressedButton == .smash,
                 action: { swipeAway(direction: .smash, profileID: profile.id) }
             )
         }
@@ -278,12 +297,27 @@ struct VoteView: View {
 
     // MARK: - Swipe Animation
 
-    private func swipeAway(direction: VoteType, profileID: String) {
-        let xOffset: CGFloat = direction == .smash ? 500 : -500
+    private func swipeAway(direction: VoteType, profileID: String, exitOffset: CGSize? = nil) {
+        let offset: CGSize
+        if let custom = exitOffset {
+            offset = custom
+        } else {
+            switch direction {
+            case .smash: offset = CGSize(width: 500, height: 0)
+            case .pass:  offset = CGSize(width: -500, height: 0)
+            case .skip:  offset = CGSize(width: 0, height: -800)
+            }
+        }
+
+        pressedButton = direction
 
         withAnimation(.easeIn(duration: 0.3)) {
-            dragOffset = CGSize(width: xOffset, height: 0)
+            dragOffset = offset
             cardOpacity = 0
+        }
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
+            pressedButton = nil
         }
 
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {

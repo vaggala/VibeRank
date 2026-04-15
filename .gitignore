@@ -79,3 +79,4 @@ playground.xcworkspace
 # xcconfig / build settings overrides (optional)
 #
 # !Config.xcconfig
+.superpowers/
