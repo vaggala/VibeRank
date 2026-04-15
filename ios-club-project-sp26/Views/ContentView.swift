@@ -41,7 +41,8 @@ struct ContentView: View {
                 case .profile:
                     ProfileView(
                         user: user,
-                        authManager: authManager
+                        authManager: authManager,
+                        appData: appData
                     )
                 }
             }

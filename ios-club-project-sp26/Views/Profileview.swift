@@ -3,8 +3,15 @@ import SwiftUI
 struct ProfileView: View {
     let user: UserProfile
     var authManager: AuthManager
+    var appData: AppData
 
     @State private var showEditProfile = false
+
+    // Compute rank the same way HomeView does, from the live leaderboard
+    private var userRank: Int {
+        let board = appData.leaderboard
+        return (board.firstIndex(where: { $0.id == user.id }) ?? 0) + 1
+    }
 
     var body: some View {
         ScrollView(showsIndicators: false) {
@@ -93,7 +100,7 @@ struct ProfileView: View {
     private var statsRow: some View {
         HStack(spacing: 0) {
             statItem(value: "\(user.personalScore)", label: "Vibe Pts")
-            statItem(value: "#\(user.rank == 0 ? "-" : "\(user.rank)")", label: "Rank")
+            statItem(value: "#\(userRank)", label: "Rank")
             statItem(value: "\(user.smashCount)", label: "Smashes", highlight: true)
             statItem(value: "\(user.passCount)", label: "Passes")
         }
@@ -207,6 +214,6 @@ private struct DetailItem {
 #Preview {
     ZStack {
         AppTheme.bg.ignoresSafeArea()
-        ProfileView(user: UserProfile(), authManager: AuthManager())
+        ProfileView(user: UserProfile(), authManager: AuthManager(), appData: AppData())
     }
 }
