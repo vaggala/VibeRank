@@ -120,7 +120,7 @@ struct ProfileView: View {
     private var coreVibeCard: some View {
         HStack {
             Text("Core vibe: ")
-                .foregroundColor(AppTheme.text) +
+                .foregroundColor(AppTheme.text)
             Text(user.coreVibe.isEmpty ? "not set yet" : user.coreVibe)
                 .foregroundColor(user.coreVibe.isEmpty ? AppTheme.textMuted : AppTheme.purple)
                 .bold()
