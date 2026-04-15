@@ -9,6 +9,8 @@ DerivedData/
 *.xccheckout
 *.xcodeproj/project.xcworkspace/contents.xcworkspacedata
 *.xcodeproj/xcuserdata
+*.xcworkspace/xcuserdata
+**/*.xcuserstate
 *.moved-aside
 *.pbxuser
 *.perspectivev3
@@ -22,7 +24,7 @@ DerivedData/
 .build/
 Packages/
 .swiftpm/
-Package.resolved
+# Package.resolved should be committed to lock dependency versions for team projects
 
 # CocoaPods
 #
@@ -77,3 +79,4 @@ playground.xcworkspace
 # xcconfig / build settings overrides (optional)
 #
 # !Config.xcconfig
+.superpowers/

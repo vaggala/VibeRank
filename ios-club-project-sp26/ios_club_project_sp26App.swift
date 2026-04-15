@@ -22,9 +22,8 @@ struct ios_club_project_sp26App: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var delegate
     var body: some Scene {
         WindowGroup {
-//            ContentView()
-            AuthView() // for testing purposes
-            VoteTest()
+            ContentView()
         }
     }
 }
+
