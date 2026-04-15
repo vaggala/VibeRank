@@ -51,7 +51,11 @@ struct ContentView: View {
         }
         .onAppear {
             appData.currentUserUID = user.id
-            appData.fetchProfiles()
+//            appData.fetchProfiles()
+            appData.startListeningLeaderboard()
+        }
+        .onDisappear {
+            appData.stopListeningLeaderboard()
         }
     }
 }
