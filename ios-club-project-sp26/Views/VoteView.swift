@@ -7,27 +7,22 @@ struct VoteView: View {
     @State private var cardOpacity: Double = 1.0
 
     var body: some View {
-        ScrollView(showsIndicators: false) {
-            VStack(alignment: .leading, spacing: 0) {
-                headerSection
-                progressBar
+        VStack(alignment: .leading, spacing: 0) {
+            headerSection
+            progressBar
 
-                if appData.isLoading && appData.voteProfiles.isEmpty {
-                    loadingState
-                } else if let profile = appData.currentProfile {
-                    profileCard(profile: profile)
-                    actionButtons(profile: profile)
-                } else {
-                    emptyState
-                }
-
-                Spacer()
+            if appData.isLoading && appData.voteProfiles.isEmpty {
+                loadingState
+            } else if let profile = appData.currentProfile {
+                profileCard(profile: profile)
+                    .frame(maxHeight: .infinity)
+                actionButtons(profile: profile)
+                    .padding(.top, 16)
+            } else {
+                emptyState
             }
-            .padding(.horizontal, 16)
         }
-        .refreshable {
-            appData.fetchProfiles()
-        }
+        .padding(.horizontal, 16)
     }
 
     // MARK: - Header
