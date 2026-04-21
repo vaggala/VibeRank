@@ -9,6 +9,9 @@ struct VoteView: View {
     @State private var pressedButton: VoteType? = nil
     @State private var burstCounter: Int = 0
     @State private var activeBurstType: VoteType? = nil
+    @State private var reactionCounter: Int = 0
+    @State private var activeReaction: VoteReaction? = nil
+    @State private var reactionDuration: Double = 1.5
 
     var body: some View {
         ZStack {
@@ -33,6 +36,15 @@ struct VoteView: View {
                 ParticleBurstView(voteType: burstType)
                     .id(burstCounter)
                     .allowsHitTesting(false)
+            }
+
+            if let reaction = activeReaction {
+                VoteReactionView(
+                    reaction: reaction,
+                    totalDuration: reactionDuration
+                )
+                .id(reactionCounter)
+                .transition(.opacity)
             }
         }
     }
@@ -319,6 +331,19 @@ struct VoteView: View {
         triggerHaptic(for: direction)
         activeBurstType = direction
         burstCounter += 1
+
+        let reaction = VoteReactionPool.random(for: direction)
+        let soundDuration = SoundPlayer.shared.play(reaction.sound)
+        reactionDuration = max(min(soundDuration, 3.5), 1.3)
+        activeReaction = reaction
+        reactionCounter += 1
+
+        let reactionSnapshot = reactionCounter
+        DispatchQueue.main.asyncAfter(deadline: .now() + reactionDuration + 0.1) {
+            if reactionCounter == reactionSnapshot {
+                activeReaction = nil
+            }
+        }
 
         pressedButton = direction
 
