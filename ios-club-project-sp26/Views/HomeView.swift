@@ -20,9 +20,6 @@ struct HomeView: View {
             }
             .padding(.horizontal, 16)
         }
-        .refreshable {
-            appData.fetchProfiles()
-        }
     }
 
     // MARK: - Header

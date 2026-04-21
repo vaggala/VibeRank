@@ -52,7 +52,6 @@ struct ContentView: View {
         }
         .onAppear {
             appData.currentUserUID = user.id
-//            appData.fetchProfiles()
             appData.startListeningLeaderboard()
         }
         .onDisappear {

@@ -74,9 +74,8 @@ class AppData {
         return voteProfiles[currentVoteIndex % voteProfiles.count]
     }
 
-    // Sorted leaderboard (all users including self)
+    // Leaderboard (already ordered by Firestore query)
     var leaderboard: [UserProfile] {
-//        allProfiles.sorted { $0.personalScore > $1.personalScore }
         allProfiles
     }
     
@@ -126,36 +125,6 @@ class AppData {
     func stopListeningLeaderboard() {
         leaderboardListener?.remove()
         leaderboardListener = nil
-    }
-
-    // MARK: - Fetch all users from Firestore
-
-    func fetchProfiles() {
-        isLoading = true
-        db.collection("users").getDocuments { [weak self] snapshot, error in
-            DispatchQueue.main.async {
-                self?.isLoading = false
-                guard let docs = snapshot?.documents else { return }
-                self?.allProfiles = docs.map { doc in
-                    let data = doc.data()
-                    var p = UserProfile()
-                    p.id           = doc.documentID
-                    p.name         = data["name"]          as? String ?? ""
-                    p.mbti         = data["mbti"]          as? String ?? ""
-                    p.rizzHobbies  = (data["rizzHobbies"]  as? [String] ?? []).joined(separator: ", ")
-                    p.anthem       = data["anthem"]        as? String ?? ""
-                    p.routine      = data["routine"]       as? String ?? ""
-                    p.homeTurf     = data["homeTurf"]      as? String ?? ""
-                    p.major        = data["major"]         as? String ?? ""
-                    p.coreVibe     = data["coreVibe"]      as? String ?? ""
-                    p.funFact      = data["funFact"]       as? String ?? ""
-                    p.personalScore = data["personalScore"] as? Int ?? 0
-                    p.smashCount   = data["smashCount"]    as? Int ?? 0
-                    p.passCount    = data["passCount"]     as? Int ?? 0
-                    return p
-                }
-            }
-        }
     }
 
     // MARK: - Vote and write back to Firestore
