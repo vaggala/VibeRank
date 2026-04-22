@@ -53,6 +53,10 @@ struct ContentView: View {
         .onAppear {
             appData.currentUserUID = user.id
             appData.startListeningLeaderboard()
+            
+            Task {
+                await appData.refreshVotingDeck()
+            }
         }
         .onDisappear {
             appData.stopListeningLeaderboard()

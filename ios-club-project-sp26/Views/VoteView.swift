@@ -19,7 +19,7 @@ struct VoteView: View {
                 headerSection
                 progressBar
 
-                if appData.isLoading && appData.voteProfiles.isEmpty {
+                if appData.isLoading && appData.candidateProfiles.isEmpty {
                     loadingState
                 } else if let profile = appData.currentProfile {
                     profileCard(profile: profile)
@@ -298,15 +298,29 @@ struct VoteView: View {
     // MARK: - Empty State
 
     private var emptyState: some View {
+//        VStack(spacing: 16) {
+//            Text("✨")
+//                .font(.system(size: 48))
+//
+//            Text("No more profiles")
+//                .font(.system(size: 18, weight: .bold, design: .rounded))
+//                .foregroundColor(AppTheme.text)
+//
+//            Text("Check back later for more vibes")
+//                .font(.system(size: 14))
+//                .foregroundColor(AppTheme.textDim)
+//        }
+//        .frame(maxWidth: .infinity)
+//        .padding(.top, 80)
         VStack(spacing: 16) {
-            Text("✨")
+            Text("🎉")
                 .font(.system(size: 48))
 
-            Text("No more profiles")
+            Text("You’ve voted on everyone")
                 .font(.system(size: 18, weight: .bold, design: .rounded))
                 .foregroundColor(AppTheme.text)
 
-            Text("Check back later for more vibes")
+            Text("Please wait for more people to join.")
                 .font(.system(size: 14))
                 .foregroundColor(AppTheme.textDim)
         }
