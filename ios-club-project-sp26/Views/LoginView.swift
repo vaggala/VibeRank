@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct LoginView: View {
-    var authManager: AuthManager
+    @State private var service = FirebaseService.shared
 
     @State private var email: String = ""
     @State private var password: String = ""
@@ -32,8 +32,8 @@ struct LoginView: View {
 
                     toggleModeButton
 
-                    if !authManager.errorMessage.isEmpty {
-                        Text(authManager.errorMessage)
+                    if !service.errorMessage.isEmpty {
+                        Text(service.errorMessage)
                             .font(.system(size: 13))
                             .foregroundColor(AppTheme.red)
                             .multilineTextAlignment(.center)
@@ -82,21 +82,8 @@ struct LoginView: View {
 
     private var formSection: some View {
         VStack(spacing: 12) {
-            inputField(
-                icon: "envelope",
-                placeholder: "Email",
-                text: $email,
-                field: .email,
-                keyboard: .emailAddress
-            )
-
-            inputField(
-                icon: "lock",
-                placeholder: "Password",
-                text: $password,
-                field: .password,
-                isSecure: true
-            )
+            inputField(icon: "envelope", placeholder: "Email",    text: $email,    field: .email, keyboard: .emailAddress)
+            inputField(icon: "lock",     placeholder: "Password", text: $password, field: .password, isSecure: true)
         }
     }
 
@@ -149,16 +136,15 @@ struct LoginView: View {
             focusedField = nil
             Task {
                 if isSignUp {
-                    await authManager.signUp(email: email, password: password)
+                    await service.signUp(email: email, password: password)
                 } else {
-                    await authManager.signIn(email: email, password: password)
+                    await service.signIn(email: email, password: password)
                 }
             }
         } label: {
             ZStack {
-                if authManager.isLoading {
-                    ProgressView()
-                        .tint(.white)
+                if service.isLoading {
+                    ProgressView().tint(.white)
                 } else {
                     Text(isSignUp ? "Create Account" : "Sign In")
                         .font(.system(size: 17, weight: .bold, design: .rounded))
@@ -178,7 +164,7 @@ struct LoginView: View {
             .clipShape(RoundedRectangle(cornerRadius: 14))
             .shadow(color: AppTheme.purple.opacity(0.35), radius: 10, y: 4)
         }
-        .disabled(!canSubmit || authManager.isLoading)
+        .disabled(!canSubmit || service.isLoading)
         .buttonStyle(ScaleButtonStyle())
     }
 
@@ -192,7 +178,7 @@ struct LoginView: View {
         Button {
             withAnimation(.easeInOut(duration: 0.2)) {
                 isSignUp.toggle()
-                authManager.errorMessage = ""
+                service.errorMessage = ""
             }
         } label: {
             HStack(spacing: 4) {
@@ -208,5 +194,5 @@ struct LoginView: View {
 }
 
 #Preview {
-    LoginView(authManager: AuthManager())
+    LoginView()
 }
