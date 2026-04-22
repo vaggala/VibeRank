@@ -1,6 +1,8 @@
 # iOS Club SP26 — Group 3 (VibeRank)
 
-A SwiftUI iOS app built for the Spring 2026 iOS Club project. Users build a vibe profile, swipe smash/pass on others, and climb a live leaderboard.
+VibeRank is a college social app that takes the classic "smash or pass" concept but replaces judging people on looks or boring, surface-level profiles with personality-driven prompts that actually capture how someone feels, not just who they are on paper. 
+
+Instead of a name and a major, your profile is built around things like your MBTI, your "delusional anthem," your unhinged daily routine, and your core vibe. Other users then swipe on those profiles, voting "Smash" (they vibe with you) or "Pass" (they don't). Every smash adds 100 points to that person's score, and everyone is ranked on a live leaderboard based on their total points.
 
 ## Features
 
