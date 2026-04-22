@@ -19,12 +19,9 @@ struct HomeView: View {
             }
             .padding(.horizontal, 16)
         }
-<<<<<<< HEAD
         .refreshable {
             service.fetchProfiles()
         }
-=======
->>>>>>> origin/main
     }
  
     // MARK: - Header

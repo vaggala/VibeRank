@@ -19,22 +19,11 @@ struct VoteView: View {
                 headerSection
                 progressBar
 
-<<<<<<< HEAD
-            if service.isLoading && service.voteProfiles.isEmpty {
-                loadingState
-            } else if let profile = service.currentProfile {
-                profileCard(profile: profile).frame(maxHeight: .infinity)
-                actionButtons(profile: profile).padding(.top, 16)
-            } else {
-                emptyState
-=======
-                if appData.isLoading && appData.voteProfiles.isEmpty {
+                if service.isLoading && service.voteProfiles.isEmpty {
                     loadingState
-                } else if let profile = appData.currentProfile {
-                    profileCard(profile: profile)
-                        .frame(maxHeight: .infinity)
-                    actionButtons(profile: profile)
-                        .padding(.top, 16)
+                } else if let profile = service.currentProfile {
+                    profileCard(profile: profile).frame(maxHeight: .infinity)
+                    actionButtons(profile: profile).padding(.top, 16)
                 } else {
                     emptyState
                 }
@@ -48,13 +37,9 @@ struct VoteView: View {
             }
 
             if let reaction = activeReaction {
-                VoteReactionView(
-                    reaction: reaction,
-                    totalDuration: reactionDuration
-                )
-                .id(reactionCounter)
-                .transition(.opacity)
->>>>>>> origin/main
+                VoteReactionView(reaction: reaction, totalDuration: reactionDuration)
+                    .id(reactionCounter)
+                    .transition(.opacity)
             }
         }
     }
@@ -182,41 +167,12 @@ struct VoteView: View {
 
     private func actionButtons(profile: UserProfile) -> some View {
         HStack(spacing: 24) {
-<<<<<<< HEAD
             VoteActionButton(icon: "xmark",        label: "Pass",  color: AppTheme.red,     size: 58, externallyPressed: pressedButton == .pass,
                              action: { swipeAway(direction: .pass,  profileID: profile.id) })
             VoteActionButton(icon: "forward.fill", label: "Skip",  color: AppTheme.textDim, size: 46, externallyPressed: pressedButton == .skip,
-                             action: { withAnimation(.easeInOut(duration: 0.3)) { service.vote(.skip) } })
+                             action: { swipeAway(direction: .skip, profileID: profile.id) })
             VoteActionButton(icon: "heart.fill",   label: "Smash", color: AppTheme.pink,    size: 58, externallyPressed: pressedButton == .smash,
                              action: { swipeAway(direction: .smash, profileID: profile.id) })
-=======
-            VoteActionButton(
-                icon: "xmark",
-                label: "Pass",
-                color: AppTheme.red,
-                size: 58,
-                externallyPressed: pressedButton == .pass,
-                action: { swipeAway(direction: .pass, profileID: profile.id) }
-            )
-
-            VoteActionButton(
-                icon: "forward.fill",
-                label: "Skip",
-                color: AppTheme.textDim,
-                size: 46,
-                externallyPressed: pressedButton == .skip,
-                action: { swipeAway(direction: .skip, profileID: profile.id) }
-            )
-
-            VoteActionButton(
-                icon: "heart.fill",
-                label: "Smash",
-                color: AppTheme.pink,
-                size: 58,
-                externallyPressed: pressedButton == .smash,
-                action: { swipeAway(direction: .smash, profileID: profile.id) }
-            )
->>>>>>> origin/main
         }
         .frame(maxWidth: .infinity)
     }
@@ -279,7 +235,6 @@ struct VoteView: View {
             dragOffset = .zero
             cardOpacity = 1.0
         }
-
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.9) {
             activeBurstType = nil
         }
@@ -287,12 +242,9 @@ struct VoteView: View {
 
     private func triggerHaptic(for type: VoteType) {
         switch type {
-        case .smash:
-            UINotificationFeedbackGenerator().notificationOccurred(.success)
-        case .pass:
-            UINotificationFeedbackGenerator().notificationOccurred(.warning)
-        case .skip:
-            UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+        case .smash: UINotificationFeedbackGenerator().notificationOccurred(.success)
+        case .pass:  UINotificationFeedbackGenerator().notificationOccurred(.warning)
+        case .skip:  UIImpactFeedbackGenerator(style: .soft).impactOccurred()
         }
     }
 }
