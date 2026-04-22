@@ -1,12 +1,12 @@
 import SwiftUI
-import FirebaseAuth
-import FirebaseFirestore
 
 enum VoteType {
     case smash
     case pass
     case skip
 }
+
+// MARK: - UserProfile
 
 struct UserProfile: Identifiable {
     var id: String = ""
