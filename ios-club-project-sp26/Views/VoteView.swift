@@ -19,16 +19,30 @@ struct VoteView: View {
                 headerSection
                 progressBar
 
-                if appData.isLoading && appData.candidateProfiles.isEmpty {
-                    loadingState
-                } else if let profile = appData.currentProfile {
-                    profileCard(profile: profile)
-                        .frame(maxHeight: .infinity)
-                    actionButtons(profile: profile)
-                        .padding(.top, 16)
-                } else {
-                    emptyState
+//                if appData.isLoading && appData.candidateProfiles.isEmpty {
+//                    loadingState
+//                } else if let profile = appData.currentProfile {
+//                    profileCard(profile: profile)
+//                        .frame(maxHeight: .infinity)
+//                    actionButtons(profile: profile)
+//                        .padding(.top, 16)
+//                } else {
+//                    emptyState
+//                }
+                ZStack {
+                    if appData.isLoading && appData.candidateProfiles.isEmpty {
+                        loadingState
+                    } else if let profile = appData.currentProfile {
+                        VStack {
+                            profileCard(profile: profile)
+                            actionButtons(profile: profile)
+                                .padding(.top, 16)
+                        }
+                    } else {
+                        emptyState
+                    }
                 }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
             .padding(.horizontal, 16)
 
