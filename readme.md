@@ -4,6 +4,8 @@ VibeRank is a college social app that takes the classic "smash or pass" concept 
 
 Instead of a name and a major, your profile is built around things like your MBTI, your "delusional anthem," your unhinged daily routine, and your core vibe. Other users then swipe on those profiles, voting "Smash" (they vibe with you) or "Pass" (they don't). Every smash adds 100 points to that person's score, and everyone is ranked on a live leaderboard based on their total points.
 
+VibeRank gives college students a fun way to show off their personality and find out who vibes with them.
+
 ## Features
 
 - Firebase email/password auth with onboarding flow
