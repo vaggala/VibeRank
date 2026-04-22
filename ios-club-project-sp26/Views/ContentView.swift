@@ -56,11 +56,28 @@ struct ContentView: View {
                     }
                 }
             }
+<<<<<<< HEAD
             .onDisappear {
                 service.stopListeningLeaderboard()
             }
         }}
  
+=======
+            .padding(.bottom, 70)
+
+            CustomTabBar(selectedTab: $selectedTab)
+        }
+        .onAppear {
+            appData.currentUserUID = user.id
+            appData.startListeningLeaderboard()
+        }
+        .onDisappear {
+            appData.stopListeningLeaderboard()
+        }
+    }
+}
+
+>>>>>>> origin/main
 // MARK: - Custom Tab Bar
  
 struct CustomTabBar: View {

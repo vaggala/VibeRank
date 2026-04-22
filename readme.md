@@ -32,13 +32,7 @@ ios-club-project-sp26/
 │
 ├── Models/
 │   ├── Models.swift                 # UserProfile struct, VoteType enum, AppData observable (leaderboard + vote feed)
-│   ├── AuthManager.swift            # @Observable auth state — sign up, sign in, session restore, onboarding flag
-│   ├── FirebaseService.swift        # Firestore/Auth wrapper — profile fetch/update, vote submission, leaderboard queries
-│   ├── User.swift                   # Legacy user model used by FirebaseService (see note below)
-│   └── Vote.swift                   # Vote record struct (voter, target, type, timestamp)
-│
-├── ViewModels/
-│   └── VotingViewModel.swift        # Thin wrapper around FirebaseService for smash/pass calls
+│   └── AuthManager.swift            # @Observable auth state — sign up, sign in, session restore, onboarding flag
 │
 └── Views/
     ├── ContentView.swift            # Root view — routes between Login, Onboarding, and main tab bar

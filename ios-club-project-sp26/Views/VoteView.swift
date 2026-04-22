@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 struct VoteView: View {
     @State private var service = FirebaseService.shared
@@ -6,12 +7,19 @@ struct VoteView: View {
     @State private var dragOffset: CGSize = .zero
     @State private var cardOpacity: Double = 1.0
     @State private var pressedButton: VoteType? = nil
+    @State private var burstCounter: Int = 0
+    @State private var activeBurstType: VoteType? = nil
+    @State private var reactionCounter: Int = 0
+    @State private var activeReaction: VoteReaction? = nil
+    @State private var reactionDuration: Double = 1.5
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            headerSection
-            progressBar
+        ZStack {
+            VStack(alignment: .leading, spacing: 0) {
+                headerSection
+                progressBar
 
+<<<<<<< HEAD
             if service.isLoading && service.voteProfiles.isEmpty {
                 loadingState
             } else if let profile = service.currentProfile {
@@ -19,9 +27,36 @@ struct VoteView: View {
                 actionButtons(profile: profile).padding(.top, 16)
             } else {
                 emptyState
+=======
+                if appData.isLoading && appData.voteProfiles.isEmpty {
+                    loadingState
+                } else if let profile = appData.currentProfile {
+                    profileCard(profile: profile)
+                        .frame(maxHeight: .infinity)
+                    actionButtons(profile: profile)
+                        .padding(.top, 16)
+                } else {
+                    emptyState
+                }
+            }
+            .padding(.horizontal, 16)
+
+            if let burstType = activeBurstType {
+                ParticleBurstView(voteType: burstType)
+                    .id(burstCounter)
+                    .allowsHitTesting(false)
+            }
+
+            if let reaction = activeReaction {
+                VoteReactionView(
+                    reaction: reaction,
+                    totalDuration: reactionDuration
+                )
+                .id(reactionCounter)
+                .transition(.opacity)
+>>>>>>> origin/main
             }
         }
-        .padding(.horizontal, 16)
     }
 
     // MARK: - Header
@@ -147,12 +182,41 @@ struct VoteView: View {
 
     private func actionButtons(profile: UserProfile) -> some View {
         HStack(spacing: 24) {
+<<<<<<< HEAD
             VoteActionButton(icon: "xmark",        label: "Pass",  color: AppTheme.red,     size: 58, externallyPressed: pressedButton == .pass,
                              action: { swipeAway(direction: .pass,  profileID: profile.id) })
             VoteActionButton(icon: "forward.fill", label: "Skip",  color: AppTheme.textDim, size: 46, externallyPressed: pressedButton == .skip,
                              action: { withAnimation(.easeInOut(duration: 0.3)) { service.vote(.skip) } })
             VoteActionButton(icon: "heart.fill",   label: "Smash", color: AppTheme.pink,    size: 58, externallyPressed: pressedButton == .smash,
                              action: { swipeAway(direction: .smash, profileID: profile.id) })
+=======
+            VoteActionButton(
+                icon: "xmark",
+                label: "Pass",
+                color: AppTheme.red,
+                size: 58,
+                externallyPressed: pressedButton == .pass,
+                action: { swipeAway(direction: .pass, profileID: profile.id) }
+            )
+
+            VoteActionButton(
+                icon: "forward.fill",
+                label: "Skip",
+                color: AppTheme.textDim,
+                size: 46,
+                externallyPressed: pressedButton == .skip,
+                action: { swipeAway(direction: .skip, profileID: profile.id) }
+            )
+
+            VoteActionButton(
+                icon: "heart.fill",
+                label: "Smash",
+                color: AppTheme.pink,
+                size: 58,
+                externallyPressed: pressedButton == .smash,
+                action: { swipeAway(direction: .smash, profileID: profile.id) }
+            )
+>>>>>>> origin/main
         }
         .frame(maxWidth: .infinity)
     }
@@ -190,6 +254,23 @@ struct VoteView: View {
             }
         }
 
+        triggerHaptic(for: direction)
+        activeBurstType = direction
+        burstCounter += 1
+
+        let reaction = VoteReactionPool.random(for: direction)
+        let soundDuration = SoundPlayer.shared.play(reaction.sound)
+        reactionDuration = max(min(soundDuration, 3.5), 1.3)
+        activeReaction = reaction
+        reactionCounter += 1
+
+        let reactionSnapshot = reactionCounter
+        DispatchQueue.main.asyncAfter(deadline: .now() + reactionDuration + 0.1) {
+            if reactionCounter == reactionSnapshot {
+                activeReaction = nil
+            }
+        }
+
         pressedButton = direction
         withAnimation(.easeIn(duration: 0.3)) { dragOffset = offset; cardOpacity = 0 }
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) { pressedButton = nil }
@@ -197,6 +278,21 @@ struct VoteView: View {
             service.vote(direction, targetID: profileID)
             dragOffset = .zero
             cardOpacity = 1.0
+        }
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.9) {
+            activeBurstType = nil
+        }
+    }
+
+    private func triggerHaptic(for type: VoteType) {
+        switch type {
+        case .smash:
+            UINotificationFeedbackGenerator().notificationOccurred(.success)
+        case .pass:
+            UINotificationFeedbackGenerator().notificationOccurred(.warning)
+        case .skip:
+            UIImpactFeedbackGenerator(style: .soft).impactOccurred()
         }
     }
 }
