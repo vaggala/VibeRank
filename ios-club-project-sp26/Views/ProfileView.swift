@@ -3,14 +3,16 @@ import SwiftUI
 struct ProfileView: View {
     @State private var service = FirebaseService.shared
     let user: UserProfile
- 
+
     @State private var showEditProfile = false
- 
+    @State private var matches: [MutualMatch] = []
+    @State private var matchesLoading: Bool = false
+
     private var userRank: Int {
         let board = service.leaderboard
         return (board.firstIndex(where: { $0.id == user.id }) ?? 0) + 1
     }
- 
+
     var body: some View {
         ScrollView(showsIndicators: false) {
             VStack(spacing: 0) {
@@ -19,12 +21,26 @@ struct ProfileView: View {
                 statsRow
                 coreVibeCard
                 profileDetails
+                mutualSmashesSection
             }
             .padding(.horizontal, 16)
         }
         .sheet(isPresented: $showEditProfile) {
             EditProfileView()
         }
+        .task(id: user.id) {
+            await loadMatches()
+        }
+    }
+
+    // MARK: - Load Matches
+
+    private func loadMatches() async {
+        guard !user.id.isEmpty else { return }
+        matchesLoading = true
+        let fetched = await service.fetchMatches(for: user.id)
+        matches = fetched
+        matchesLoading = false
     }
  
     // MARK: - Top Bar
@@ -145,8 +161,79 @@ struct ProfileView: View {
     }
 }
  
+// MARK: - Mutual Smashes Section
+
+extension ProfileView {
+    fileprivate var mutualSmashesSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Mutual Smashes")
+                .font(.system(size: 16, weight: .semibold, design: .rounded))
+                .foregroundColor(AppTheme.text)
+                .padding(.top, 20)
+                .padding(.bottom, 4)
+
+            if matchesLoading && matches.isEmpty {
+                ProgressView()
+                    .tint(AppTheme.purple)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 20)
+            } else if matches.isEmpty {
+                Text("No mutual smashes yet — keep vibing!")
+                    .font(.system(size: 13))
+                    .foregroundColor(AppTheme.textMuted)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(16)
+                    .cardStyle()
+            } else {
+                ForEach(matches) { match in
+                    mutualMatchRow(match: match)
+                }
+            }
+        }
+        .padding(.bottom, 20)
+    }
+
+    fileprivate func mutualMatchRow(match: MutualMatch) -> some View {
+        HStack(spacing: 12) {
+            ZStack {
+                Circle()
+                    .fill(LinearGradient(colors: [AppTheme.purple, AppTheme.pink], startPoint: .topLeading, endPoint: .bottomTrailing))
+                    .frame(width: 40, height: 40)
+                Text(Self.initials(from: match.otherUserName))
+                    .font(.system(size: 14, weight: .bold, design: .rounded))
+                    .foregroundColor(.white)
+            }
+            VStack(alignment: .leading, spacing: 2) {
+                Text(match.otherUserName.isEmpty ? "someone" : match.otherUserName)
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(AppTheme.text)
+                if match.otherUserHasInstagram && !match.otherUserInstagram.isEmpty {
+                    Text(match.otherUserInstagram)
+                        .font(.system(size: 12))
+                        .foregroundColor(AppTheme.pink)
+                } else {
+                    Text("no Instagram")
+                        .font(.system(size: 12))
+                        .foregroundColor(AppTheme.textMuted)
+                }
+            }
+            Spacer()
+            Image(systemName: "heart.fill")
+                .font(.system(size: 12))
+                .foregroundColor(AppTheme.pink.opacity(0.7))
+        }
+        .padding(.horizontal, 16).padding(.vertical, 12).cardStyle()
+    }
+
+    fileprivate static func initials(from name: String) -> String {
+        let parts = name.split(separator: " ").prefix(2).compactMap { $0.first }.map(String.init)
+        let joined = parts.joined().uppercased()
+        return joined.isEmpty ? "?" : joined
+    }
+}
+
 // MARK: - Detail Item Model
- 
+
 private struct DetailItem {
     let icon: String
     let label: String
