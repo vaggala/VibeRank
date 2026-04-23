@@ -1,8 +1,8 @@
 import SwiftUI
- 
+
 struct OnboardingView: View {
     @State private var service = FirebaseService.shared
- 
+
     @State private var step: Int = 0
     @State private var name: String = ""
     @State private var mbti: String = ""
@@ -13,11 +13,11 @@ struct OnboardingView: View {
     @State private var major: String = ""
     @State private var coreVibe: String = ""
     @State private var funFact: String = ""
- 
+
     @FocusState private var fieldFocused: Bool
- 
+
     private let totalSteps = 9
- 
+
     private let steps: [(title: String, subtitle: String, icon: String)] = [
         ("What's your name?",          "Let's start with the basics",                    "person.fill"),
         ("Your MBTI?",                 "Pick your personality type",                     "brain.head.profile"),
@@ -29,25 +29,25 @@ struct OnboardingView: View {
         ("Core Vibe",                  "Describe yourself in one iconic phrase",         "flame.fill"),
         ("Fun Fact",                   "Something that makes people say \"wait what\"",  "star.fill"),
     ]
- 
+
     private let mbtiTypes = [
         "INTJ", "INTP", "ENTJ", "ENTP",
         "INFJ", "INFP", "ENFJ", "ENFP",
         "ISTJ", "ISTP", "ESTJ", "ESTP",
         "ISFJ", "ISFP", "ESFJ", "ESFP",
     ]
- 
+
     var body: some View {
         ZStack {
             AppTheme.bg.ignoresSafeArea()
- 
+
             VStack(spacing: 0) {
                 progressBar
                     .padding(.horizontal, 24)
                     .padding(.top, 20)
- 
+
                 Spacer()
- 
+
                 stepContent
                     .padding(.horizontal, 28)
                     .transition(.asymmetric(
@@ -55,9 +55,9 @@ struct OnboardingView: View {
                         removal:   .move(edge: .leading).combined(with: .opacity)
                     ))
                     .id(step)
- 
+
                 Spacer()
- 
+
                 bottomButtons
                     .padding(.horizontal, 28)
                     .padding(.bottom, 40)
@@ -65,9 +65,9 @@ struct OnboardingView: View {
         }
         .onTapGesture { fieldFocused = false }
     }
- 
+
     // MARK: - Progress Bar
- 
+
     private var progressBar: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
@@ -79,7 +79,7 @@ struct OnboardingView: View {
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundColor(AppTheme.purple)
             }
- 
+
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
                     RoundedRectangle(cornerRadius: 4).fill(AppTheme.surface).frame(height: 4)
@@ -92,9 +92,9 @@ struct OnboardingView: View {
             .frame(height: 4)
         }
     }
- 
+
     // MARK: - Step Content
- 
+
     @ViewBuilder
     private var stepContent: some View {
         VStack(alignment: .leading, spacing: 24) {
@@ -110,13 +110,13 @@ struct OnboardingView: View {
                     .font(.system(size: 14))
                     .foregroundColor(AppTheme.textDim)
             }
- 
+
             if step == 1 { mbtiPicker } else { textInputField }
         }
     }
- 
+
     // MARK: - Text Input
- 
+
     private var textInputField: some View {
         TextField(inputPlaceholder, text: currentBinding, axis: .vertical)
             .font(.system(size: 16))
@@ -133,7 +133,7 @@ struct OnboardingView: View {
             .animation(.easeInOut(duration: 0.2), value: fieldFocused)
             .onAppear { fieldFocused = true }
     }
- 
+
     private var inputPlaceholder: String {
         switch step {
         case 0: return "e.g. Jordan Kim"
@@ -147,9 +147,9 @@ struct OnboardingView: View {
         default: return ""
         }
     }
- 
+
     // MARK: - MBTI Picker
- 
+
     private var mbtiPicker: some View {
         LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 10), count: 4), spacing: 10) {
             ForEach(mbtiTypes, id: \.self) { type in
@@ -171,9 +171,9 @@ struct OnboardingView: View {
             }
         }
     }
- 
+
     // MARK: - Bottom Buttons
- 
+
     private var bottomButtons: some View {
         HStack(spacing: 12) {
             if step > 0 {
@@ -189,7 +189,7 @@ struct OnboardingView: View {
                 }
                 .buttonStyle(ScaleButtonStyle())
             }
- 
+
             Button {
                 if step < totalSteps - 1 {
                     withAnimation(.easeInOut(duration: 0.25)) { step += 1 }
@@ -219,9 +219,9 @@ struct OnboardingView: View {
             .buttonStyle(ScaleButtonStyle())
         }
     }
- 
+
     // MARK: - Helpers
- 
+
     private var currentBinding: Binding<String> {
         switch step {
         case 0: return $name
@@ -235,7 +235,7 @@ struct OnboardingView: View {
         default: return .constant("")
         }
     }
- 
+
     private var currentValue: String {
         switch step {
         case 0: return name
@@ -250,11 +250,11 @@ struct OnboardingView: View {
         default: return ""
         }
     }
- 
+
     private var canAdvance: Bool {
         !currentValue.trimmingCharacters(in: .whitespaces).isEmpty
     }
- 
+
     private func submitProfile() {
         var profile = UserProfile()
         profile.name        = name.trimmingCharacters(in: .whitespaces)
@@ -266,10 +266,10 @@ struct OnboardingView: View {
         profile.major       = major.trimmingCharacters(in: .whitespaces)
         profile.coreVibe    = coreVibe.trimmingCharacters(in: .whitespaces)
         profile.funFact     = funFact.trimmingCharacters(in: .whitespaces)
-        Task { await service.saveProfile(profile) }
+        Task { await service.createProfile(profile) }
     }
 }
- 
+
 #Preview {
     OnboardingView()
 }
