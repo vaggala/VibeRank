@@ -8,10 +8,14 @@ struct ProfileView: View {
     @State private var matches: [MutualMatch] = []
     @State private var matchesLoading: Bool = false
 
+//    private var userRank: Int {
+//        let board = service.leaderboard
+//        return (board.firstIndex(where: { $0.id == user.id }) ?? 0) + 1
+//    }
     private var userRank: Int {
-        let board = service.leaderboard
-        return (board.firstIndex(where: { $0.id == user.id }) ?? 0) + 1
+        service.userRank
     }
+    
 
     var body: some View {
         ScrollView(showsIndicators: false) {
