@@ -5,9 +5,12 @@ struct HomeView: View {
     var currentUser: UserProfile
     var onStartVoting: () -> Void
  
+//    private var userRank: Int {
+//        let board = service.leaderboard
+//        return (board.firstIndex(where: { $0.id == currentUser.id }) ?? 0) + 1
+//    }
     private var userRank: Int {
-        let board = service.leaderboard
-        return (board.firstIndex(where: { $0.id == currentUser.id }) ?? 0) + 1
+        service.userRank
     }
  
     var body: some View {
