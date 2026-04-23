@@ -32,7 +32,7 @@ struct HomeView: View {
                 .font(.system(size: 26, weight: .bold, design: .rounded))
                 .foregroundColor(.white)
  
-            Text("See who's winning the vibe check")
+            Text("See who's winning the vibe check!")
                 .font(.system(size: 13))
                 .foregroundColor(.white.opacity(0.7))
                 .padding(.top, 2)

@@ -1,9 +1,9 @@
 import SwiftUI
- 
+
 struct EditProfileView: View {
     @State private var service = FirebaseService.shared
     @Environment(\.dismiss) private var dismiss
- 
+
     @State private var name: String
     @State private var mbti: String
     @State private var hobbies: String
@@ -21,14 +21,14 @@ struct EditProfileView: View {
     enum EditField: Hashable {
         case name, hobbies, anthem, routine, homeTurf, major, coreVibe, funFact, instagram
     }
- 
+
     private let mbtiTypes = [
         "INTJ", "INTP", "ENTJ", "ENTP",
         "INFJ", "INFP", "ENFJ", "ENFP",
         "ISTJ", "ISTP", "ESTJ", "ESTP",
         "ISFJ", "ISFP", "ESFJ", "ESFP",
     ]
- 
+
     init() {
         let u = FirebaseService.shared.currentUser ?? UserProfile()
         _name         = State(initialValue: u.name)
@@ -43,12 +43,12 @@ struct EditProfileView: View {
         _instagram    = State(initialValue: u.instagram)
         _hasInstagram = State(initialValue: u.hasInstagram)
     }
- 
+
     var body: some View {
         NavigationView {
             ZStack {
                 AppTheme.bg.ignoresSafeArea()
- 
+
                 ScrollView(showsIndicators: false) {
                     VStack(spacing: 16) {
                         fieldCard(label: "Name",                   field: .name,     text: $name,     placeholder: "Your name")
@@ -76,14 +76,14 @@ struct EditProfileView: View {
         }
         .onTapGesture { focusedField = nil }
     }
- 
+
     // MARK: - Field Card
- 
+
     private func fieldCard(label: String, field: EditField, text: Binding<String>, placeholder: String, multiline: Bool = false) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(label.uppercased())
                 .font(.system(size: 10, weight: .semibold)).foregroundColor(AppTheme.textMuted).tracking(0.8)
- 
+
             TextField(placeholder, text: text, axis: multiline ? .vertical : .horizontal)
                 .font(.system(size: 15)).foregroundColor(AppTheme.text)
                 .lineLimit(multiline ? 3 : 1)
@@ -93,7 +93,7 @@ struct EditProfileView: View {
                 .animation(.easeInOut(duration: 0.2), value: focusedField)
         }
     }
- 
+
     // MARK: - Instagram Section
 
     private var instagramSection: some View {
@@ -146,12 +146,12 @@ struct EditProfileView: View {
     }
 
     // MARK: - MBTI Section
- 
+
     private var mbtiSection: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text("MBTI".uppercased())
                 .font(.system(size: 10, weight: .semibold)).foregroundColor(AppTheme.textMuted).tracking(0.8)
- 
+
             LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 4), spacing: 8) {
                 ForEach(mbtiTypes, id: \.self) { type in
                     Button { withAnimation(.easeInOut(duration: 0.15)) { mbti = type } } label: {
@@ -172,7 +172,7 @@ struct EditProfileView: View {
             }
         }
     }
- 
+
     // MARK: - Helpers
 
     private func normalizedInstagram() -> String {
@@ -183,12 +183,13 @@ struct EditProfileView: View {
     }
 
     // MARK: - Save Button
- 
+
     private var saveButton: some View {
         Button {
             focusedField = nil
             Task {
-                var updated = service.currentUser ?? UserProfile()
+                var updated = UserProfile()
+                updated.id           = service.currentUser?.id ?? ""
                 updated.name         = name.trimmingCharacters(in: .whitespaces)
                 updated.mbti         = mbti
                 updated.rizzHobbies  = hobbies.trimmingCharacters(in: .whitespaces)
@@ -200,7 +201,7 @@ struct EditProfileView: View {
                 updated.funFact      = funFact.trimmingCharacters(in: .whitespaces)
                 updated.instagram    = normalizedInstagram()
                 updated.hasInstagram = hasInstagram
-                await service.saveProfile(updated)
+                await service.updateProfile(updated)
                 dismiss()
             }
         } label: {
@@ -222,8 +223,7 @@ struct EditProfileView: View {
         .padding(.bottom, 20)
     }
 }
- 
+
 #Preview {
     EditProfileView()
 }
- 

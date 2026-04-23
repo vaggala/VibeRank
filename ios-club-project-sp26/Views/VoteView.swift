@@ -21,7 +21,7 @@ struct VoteView: View {
                 headerSection
                 progressBar
 
-                if service.isLoading && service.voteProfiles.isEmpty {
+                if service.isLoading && service.candidateProfiles.isEmpty {
                     loadingState
                 } else if let profile = service.currentProfile {
                     profileCard(profile: profile).frame(maxHeight: .infinity)
@@ -75,13 +75,13 @@ struct VoteView: View {
                     RoundedRectangle(cornerRadius: 4).fill(AppTheme.surface).frame(height: 4)
                     RoundedRectangle(cornerRadius: 4)
                         .fill(LinearGradient(colors: [AppTheme.purple, AppTheme.pink], startPoint: .leading, endPoint: .trailing))
-                        .frame(width: geo.size.width * min(CGFloat(service.totalVotes) / 30.0, 1.0), height: 4)
-                        .animation(.easeInOut(duration: 0.5), value: service.totalVotes)
+                        .frame(width: geo.size.width * min(CGFloat(service.votedUserIDs.count) / CGFloat(max(service.votedUserIDs.count + service.candidateProfiles.count, 1)), 1.0), height: 4)
+                        .animation(.easeInOut(duration: 0.5), value: service.votedUserIDs.count)
                 }
             }
             .frame(height: 4)
 
-            Text("\(service.totalVotes) voted")
+            Text("\(service.votedUserIDs.count) voted")
                 .font(.system(size: 12)).foregroundColor(AppTheme.textDim).monospacedDigit()
         }
         .padding(.bottom, 16)
@@ -198,14 +198,21 @@ struct VoteView: View {
     }
 
     private var emptyState: some View {
-        VStack(spacing: 16) {
-            Text("✨").font(.system(size: 48))
-            Text("No more profiles").font(.system(size: 18, weight: .bold, design: .rounded)).foregroundColor(AppTheme.text)
-            Text("Check back later for more vibes").font(.system(size: 14)).foregroundColor(AppTheme.textDim)
+        VStack {
+            Spacer()
+            VStack(spacing: 16) {
+                Text("✨").font(.system(size: 48))
+                Text("No more profiles")
+                    .font(.system(size: 18, weight: .bold, design: .rounded))
+                    .foregroundColor(AppTheme.text)
+                Text("Check back later for more vibes")
+                    .font(.system(size: 14))
+                    .foregroundColor(AppTheme.textDim)
+            }
+            Spacer()
         }
-        .frame(maxWidth: .infinity).padding(.top, 80)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
-
     // MARK: - Swipe Animation
 
     private func swipeAway(direction: VoteType, profileID: String, exitOffset: CGSize? = nil) {

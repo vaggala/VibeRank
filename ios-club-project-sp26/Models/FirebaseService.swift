@@ -1,4 +1,4 @@
-////
+//
 //  FirebaseService.swift
 //  ios-club-project-sp26
 //
@@ -13,19 +13,23 @@ import FirebaseAuth
 class FirebaseService {
     static let shared = FirebaseService()
 
-    // MARK: - Auth State (was AuthManager)
     var currentUser: UserProfile? = nil
     var isLoggedIn: Bool = false
     var needsOnboarding: Bool = false
     var errorMessage: String = ""
     var isLoading: Bool = false
 
-    // MARK: - Voting / Leaderboard State (was AppData)
     var allProfiles: [UserProfile] = []
     var currentVoteIndex: Int = 0
     var totalVotes: Int = 0
     var currentUserUID: String = ""
-    var userRank : Int = -1
+    var userRank: Int = 0
+    
+    var candidateProfiles: [UserProfile] = []
+    var votedUserIDs: Set<String> = []
+    var hasLoadedVoteHistory: Bool = false
+    var hasMoreCandidates: Bool = true
+    private var isLoadingCandidates: Bool = false
 
     let db: Firestore
     private var authHandle: AuthStateDidChangeListenerHandle?
@@ -48,17 +52,15 @@ class FirebaseService {
         }
     }
 
-    // MARK: - Computed (was AppData)
 
     var voteProfiles: [UserProfile] {
         allProfiles.filter { $0.id != currentUserUID }
     }
 
     var currentProfile: UserProfile? {
-        guard !voteProfiles.isEmpty else { return nil }
-        return voteProfiles[currentVoteIndex % voteProfiles.count]
+        candidateProfiles.first
     }
-
+    
     var leaderboard: [UserProfile] {
         allProfiles
     }
@@ -112,9 +114,11 @@ class FirebaseService {
         totalVotes = 0
     }
 
-    // MARK: - Save Profile (onboarding + edit-profile)
+    // MARK: - Create Profile (onboarding only)
+    // Called once when a new user completes onboarding.
+    // Creates the document from scratch and initializes scores to 0.
 
-    func saveProfile(_ profile: UserProfile) async {
+    func createProfile(_ profile: UserProfile) async {
         guard let uid = Auth.auth().currentUser?.uid else { return }
         await MainActor.run { isLoading = true }
 
@@ -130,9 +134,9 @@ class FirebaseService {
             "funFact":       profile.funFact,
             "instagram":     profile.instagram,
             "hasInstagram":  profile.hasInstagram,
-            "personalScore": profile.personalScore,
-            "smashCount":    profile.smashCount,
-            "passCount":     profile.passCount
+            "personalScore": 0,
+            "smashCount":    0,
+            "passCount":     0
         ]
 
         do {
@@ -142,6 +146,44 @@ class FirebaseService {
             await MainActor.run {
                 self.currentUser = saved
                 self.needsOnboarding = false
+                self.isLoading = false
+            }
+        } catch {
+            await MainActor.run {
+                self.errorMessage = error.localizedDescription
+                self.isLoading = false
+            }
+        }
+    }
+
+    // MARK: - Update Profile (edit profile only)
+    // Called when an existing user edits their profile.
+    // Never touches scores — those are owned exclusively by vote transactions.
+
+    func updateProfile(_ profile: UserProfile) async {
+        guard let uid = Auth.auth().currentUser?.uid else { return }
+        await MainActor.run { isLoading = true }
+
+        let data: [String: Any] = [
+            "name":         profile.name,
+            "mbti":         profile.mbti,
+            "rizzHobbies":  profile.rizzHobbies.isEmpty ? [] : [profile.rizzHobbies],
+            "anthem":       profile.anthem,
+            "routine":      profile.routine,
+            "homeTurf":     profile.homeTurf,
+            "major":        profile.major,
+            "coreVibe":     profile.coreVibe,
+            "funFact":      profile.funFact,
+            "instagram":    profile.instagram,
+            "hasInstagram": profile.hasInstagram
+        ]
+
+        do {
+            try await db.collection("users").document(uid).updateData(data)
+            var saved = profile
+            saved.id = uid
+            await MainActor.run {
+                self.currentUser = saved
                 self.isLoading = false
             }
         } catch {
@@ -267,12 +309,15 @@ class FirebaseService {
     // MARK: - Vote (optimistic local update + Firestore write)
 
     func vote(_ type: VoteType, targetID: String = "", onMutualMatch: ((MutualMatch) -> Void)? = nil) {
+        guard !targetID.isEmpty else { return }
         switch type {
         case .smash:
             if let index = allProfiles.firstIndex(where: { $0.id == targetID }) {
                 allProfiles[index].personalScore += 100
                 allProfiles[index].smashCount += 1
             }
+            votedUserIDs.insert(targetID)
+            candidateProfiles.removeAll { $0.id == targetID }
             Task {
                 let match = await submitVote(targetUserId: targetID, isSmash: true)
                 if let match = match {
@@ -283,11 +328,16 @@ class FirebaseService {
             if let index = allProfiles.firstIndex(where: { $0.id == targetID }) {
                 allProfiles[index].passCount += 1
             }
-            Task { _ = await submitVote(targetUserId: targetID, isSmash: false) }
+            votedUserIDs.insert(targetID)
+            candidateProfiles.removeAll { $0.id == targetID }
+            Task { await submitVote(targetUserId: targetID, isSmash: false) }
         case .skip:
-            break
+            // Rotate to back of deck without marking as voted
+            if let first = candidateProfiles.first, first.id == targetID {
+                candidateProfiles.removeFirst()
+                candidateProfiles.append(first)
+            }
         }
-        currentVoteIndex += 1
         totalVotes += 1
     }
 
@@ -474,4 +524,80 @@ class FirebaseService {
             return -1
         }
     }
+    
+    // MARK. - Duplicate Vote
+    func loadVotedUserIDs() async {
+        guard !currentUserUID.isEmpty else { return }
+        do {
+            let snapshot = try await db.collection("votes")
+                .whereField("voterId", isEqualTo: currentUserUID)
+                .getDocuments()
+            let ids = snapshot.documents.compactMap { $0.data()["targetUserId"] as? String }
+            await MainActor.run {
+                self.votedUserIDs = Set(ids)
+                self.hasLoadedVoteHistory = true
+            }
+        } catch {
+            print("failed to load vote history: \(error)")
+            await MainActor.run {
+                self.votedUserIDs = []
+                self.hasLoadedVoteHistory = true
+            }
+        }
+    }
+
+    func loadCandidateProfiles(batchSize: Int = 50) async {
+        guard !currentUserUID.isEmpty else { return }
+        await MainActor.run { self.isLoadingCandidates = true }
+        do {
+            let snapshot = try await db.collection("users")
+                .limit(to: batchSize)
+                .getDocuments()
+            let filtered = snapshot.documents.compactMap { doc -> UserProfile? in
+                let id = doc.documentID
+                guard id != self.currentUserUID else { return nil }
+                guard !self.votedUserIDs.contains(id) else { return nil }
+                return Self.profile(from: doc, rank: 0)
+            }
+            await MainActor.run {
+                self.candidateProfiles = filtered
+                self.hasMoreCandidates = filtered.count == batchSize
+                self.isLoadingCandidates = false
+            }
+        } catch {
+            print("failed to load candidate profiles: \(error)")
+            await MainActor.run {
+                self.candidateProfiles = []
+                self.hasMoreCandidates = false
+                self.isLoadingCandidates = false
+            }
+        }
+    }
+
+    func refreshVotingDeck() async {
+        guard !currentUserUID.isEmpty else { return }
+        await loadVotedUserIDs()
+        await loadCandidateProfiles()
+    }
+    
+    static func profile(from doc: QueryDocumentSnapshot, rank: Int) -> UserProfile {
+        let data = doc.data()
+        var p = UserProfile()
+        p.id            = doc.documentID
+        p.name          = data["name"]          as? String ?? ""
+        p.mbti          = data["mbti"]          as? String ?? ""
+        p.rizzHobbies   = (data["rizzHobbies"]  as? [String] ?? []).joined(separator: ", ")
+        p.anthem        = data["anthem"]        as? String ?? ""
+        p.routine       = data["routine"]       as? String ?? ""
+        p.homeTurf      = data["homeTurf"]      as? String ?? ""
+        p.major         = data["major"]         as? String ?? ""
+        p.coreVibe      = data["coreVibe"]      as? String ?? ""
+        p.funFact       = data["funFact"]       as? String ?? ""
+        p.personalScore = data["personalScore"] as? Int ?? 0
+        p.smashCount    = data["smashCount"]    as? Int ?? 0
+        p.passCount     = data["passCount"]     as? Int ?? 0
+        p.rank          = rank
+        return p
+    }
+    
 }
