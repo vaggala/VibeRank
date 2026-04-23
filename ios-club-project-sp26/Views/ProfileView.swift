@@ -1,16 +1,19 @@
 import SwiftUI
- 
+
 struct ProfileView: View {
     @State private var service = FirebaseService.shared
     let user: UserProfile
- 
+
     @State private var showEditProfile = false
- 
+    
     private var userRank: Int {
         let board = service.leaderboard
-        return (board.firstIndex(where: { $0.id == user.id }) ?? 0) + 1
+        guard let index = board.firstIndex(where: { $0.id == user.id }) else {
+            return -1
+        }
+        return index + 1
     }
- 
+
     var body: some View {
         ScrollView(showsIndicators: false) {
             VStack(spacing: 0) {
@@ -26,18 +29,18 @@ struct ProfileView: View {
             EditProfileView()
         }
     }
- 
+
     // MARK: - Top Bar
- 
+
     private var topBar: some View {
         HStack {
             Spacer()
- 
+
             Button("Edit") { showEditProfile = true }
                 .font(.system(size: 12, weight: .medium)).foregroundColor(AppTheme.text)
                 .padding(.horizontal, 14).padding(.vertical, 6)
                 .background(.white.opacity(0.1)).clipShape(RoundedRectangle(cornerRadius: 8))
- 
+
             Button {
                 service.signOut()
             } label: {
@@ -49,9 +52,9 @@ struct ProfileView: View {
         }
         .padding(.bottom, 8)
     }
- 
+
     // MARK: - Avatar & Name
- 
+
     private var avatarSection: some View {
         VStack(spacing: 0) {
             ZStack {
@@ -69,19 +72,19 @@ struct ProfileView: View {
         }
         .frame(maxWidth: .infinity).padding(.bottom, 20)
     }
- 
+
     // MARK: - Stats Row
- 
+
     private var statsRow: some View {
         HStack(spacing: 0) {
             statItem(value: "\(user.personalScore)", label: "Vibe Pts")
-            statItem(value: "#\(userRank)",          label: "Rank")
+            statItem(value: userRank == -1 ? "—" : "#\(userRank)", label: "Rank")
             statItem(value: "\(user.smashCount)",    label: "Smashes", highlight: true)
             statItem(value: "\(user.passCount)",     label: "Passes")
         }
         .padding(.vertical, 14).cardStyle().padding(.bottom, 16)
     }
- 
+
     private func statItem(value: String, label: String, highlight: Bool = false) -> some View {
         VStack(spacing: 2) {
             Text(value).font(.system(size: 20, weight: .bold, design: .rounded))
@@ -90,9 +93,9 @@ struct ProfileView: View {
         }
         .frame(maxWidth: .infinity)
     }
- 
+
     // MARK: - Core Vibe Card
- 
+
     private var coreVibeCard: some View {
         HStack {
             Text("Core vibe: ").foregroundColor(AppTheme.text)
@@ -106,9 +109,9 @@ struct ProfileView: View {
         .overlay(RoundedRectangle(cornerRadius: 12).stroke(AppTheme.purple.opacity(0.25), lineWidth: 1))
         .padding(.bottom, 20)
     }
- 
+
     // MARK: - Profile Details
- 
+
     private var profileDetails: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("My Profile")
@@ -116,7 +119,7 @@ struct ProfileView: View {
             ForEach(detailItems, id: \.label) { item in profileDetailRow(item: item) }
         }
     }
- 
+
     private var detailItems: [DetailItem] {
         [
             DetailItem(icon: "🎓", label: "Major",             value: user.major,        dotColor: AppTheme.purple),
@@ -128,7 +131,7 @@ struct ProfileView: View {
             DetailItem(icon: "⭐", label: "Fun Fact",          value: user.funFact,      dotColor: AppTheme.gold),
         ]
     }
- 
+
     private func profileDetailRow(item: DetailItem) -> some View {
         HStack(spacing: 12) {
             Circle().fill(item.dotColor).frame(width: 8, height: 8)
@@ -144,19 +147,24 @@ struct ProfileView: View {
         .padding(.horizontal, 16).padding(.vertical, 12).cardStyle()
     }
 }
- 
+
 // MARK: - Detail Item Model
- 
+
 private struct DetailItem {
     let icon: String
     let label: String
     let value: String
     let dotColor: Color
 }
- 
+
 #Preview {
     ZStack {
         AppTheme.bg.ignoresSafeArea()
-        ProfileView(user: UserProfile())
+        ProfileView(user: {
+            var u = UserProfile()
+            u.id = "preview-user"
+            return u
+        }())
     }
 }
+
