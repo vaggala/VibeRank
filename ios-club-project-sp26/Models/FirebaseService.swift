@@ -24,6 +24,12 @@ class FirebaseService {
     var totalVotes: Int = 0
     var currentUserUID: String = ""
     var userRank: Int = 0
+    
+    var candidateProfiles: [UserProfile] = []
+    var votedUserIDs: Set<String> = []
+    var hasLoadedVoteHistory: Bool = false
+    var hasMoreCandidates: Bool = true
+    private var isLoadingCandidates: Bool = false
 
     let db: Firestore
     private var authHandle: AuthStateDidChangeListenerHandle?
@@ -52,10 +58,9 @@ class FirebaseService {
     }
 
     var currentProfile: UserProfile? {
-        guard !voteProfiles.isEmpty else { return nil }
-        return voteProfiles[currentVoteIndex % voteProfiles.count]
+        candidateProfiles.first
     }
-
+    
     var leaderboard: [UserProfile] {
         allProfiles
     }
@@ -294,22 +299,30 @@ class FirebaseService {
     // MARK: - Vote (optimistic local update + Firestore write)
 
     func vote(_ type: VoteType, targetID: String = "") {
+        guard !targetID.isEmpty else { return }
         switch type {
         case .smash:
             if let index = allProfiles.firstIndex(where: { $0.id == targetID }) {
                 allProfiles[index].personalScore += 100
                 allProfiles[index].smashCount += 1
             }
+            votedUserIDs.insert(targetID)
+            candidateProfiles.removeAll { $0.id == targetID }
             Task { await submitVote(targetUserId: targetID, isSmash: true) }
         case .pass:
             if let index = allProfiles.firstIndex(where: { $0.id == targetID }) {
                 allProfiles[index].passCount += 1
             }
+            votedUserIDs.insert(targetID)
+            candidateProfiles.removeAll { $0.id == targetID }
             Task { await submitVote(targetUserId: targetID, isSmash: false) }
         case .skip:
-            break
+            // Rotate to back of deck without marking as voted
+            if let first = candidateProfiles.first, first.id == targetID {
+                candidateProfiles.removeFirst()
+                candidateProfiles.append(first)
+            }
         }
-        currentVoteIndex += 1
         totalVotes += 1
     }
 
@@ -383,4 +396,80 @@ class FirebaseService {
             return -1
         }
     }
+    
+    // MARK. - Duplicate Vote
+    func loadVotedUserIDs() async {
+        guard !currentUserUID.isEmpty else { return }
+        do {
+            let snapshot = try await db.collection("votes")
+                .whereField("voterId", isEqualTo: currentUserUID)
+                .getDocuments()
+            let ids = snapshot.documents.compactMap { $0.data()["targetUserId"] as? String }
+            await MainActor.run {
+                self.votedUserIDs = Set(ids)
+                self.hasLoadedVoteHistory = true
+            }
+        } catch {
+            print("failed to load vote history: \(error)")
+            await MainActor.run {
+                self.votedUserIDs = []
+                self.hasLoadedVoteHistory = true
+            }
+        }
+    }
+
+    func loadCandidateProfiles(batchSize: Int = 50) async {
+        guard !currentUserUID.isEmpty else { return }
+        await MainActor.run { self.isLoadingCandidates = true }
+        do {
+            let snapshot = try await db.collection("users")
+                .limit(to: batchSize)
+                .getDocuments()
+            let filtered = snapshot.documents.compactMap { doc -> UserProfile? in
+                let id = doc.documentID
+                guard id != self.currentUserUID else { return nil }
+                guard !self.votedUserIDs.contains(id) else { return nil }
+                return Self.profile(from: doc, rank: 0)
+            }
+            await MainActor.run {
+                self.candidateProfiles = filtered
+                self.hasMoreCandidates = filtered.count == batchSize
+                self.isLoadingCandidates = false
+            }
+        } catch {
+            print("failed to load candidate profiles: \(error)")
+            await MainActor.run {
+                self.candidateProfiles = []
+                self.hasMoreCandidates = false
+                self.isLoadingCandidates = false
+            }
+        }
+    }
+
+    func refreshVotingDeck() async {
+        guard !currentUserUID.isEmpty else { return }
+        await loadVotedUserIDs()
+        await loadCandidateProfiles()
+    }
+    
+    static func profile(from doc: QueryDocumentSnapshot, rank: Int) -> UserProfile {
+        let data = doc.data()
+        var p = UserProfile()
+        p.id            = doc.documentID
+        p.name          = data["name"]          as? String ?? ""
+        p.mbti          = data["mbti"]          as? String ?? ""
+        p.rizzHobbies   = (data["rizzHobbies"]  as? [String] ?? []).joined(separator: ", ")
+        p.anthem        = data["anthem"]        as? String ?? ""
+        p.routine       = data["routine"]       as? String ?? ""
+        p.homeTurf      = data["homeTurf"]      as? String ?? ""
+        p.major         = data["major"]         as? String ?? ""
+        p.coreVibe      = data["coreVibe"]      as? String ?? ""
+        p.funFact       = data["funFact"]       as? String ?? ""
+        p.personalScore = data["personalScore"] as? Int ?? 0
+        p.smashCount    = data["smashCount"]    as? Int ?? 0
+        p.passCount     = data["passCount"]     as? Int ?? 0
+        p.rank          = rank
+        return p
+    }
+    
 }
