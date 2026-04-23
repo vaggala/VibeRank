@@ -1,4 +1,4 @@
-////
+//
 //  FirebaseService.swift
 //  ios-club-project-sp26
 //
@@ -13,19 +13,17 @@ import FirebaseAuth
 class FirebaseService {
     static let shared = FirebaseService()
 
-    // MARK: - Auth State (was AuthManager)
     var currentUser: UserProfile? = nil
     var isLoggedIn: Bool = false
     var needsOnboarding: Bool = false
     var errorMessage: String = ""
     var isLoading: Bool = false
 
-    // MARK: - Voting / Leaderboard State (was AppData)
     var allProfiles: [UserProfile] = []
     var currentVoteIndex: Int = 0
     var totalVotes: Int = 0
     var currentUserUID: String = ""
-    var userRank : Int = -1
+    var userRank: Int = 0
 
     let db: Firestore
     private var authHandle: AuthStateDidChangeListenerHandle?
@@ -48,7 +46,6 @@ class FirebaseService {
         }
     }
 
-    // MARK: - Computed (was AppData)
 
     var voteProfiles: [UserProfile] {
         allProfiles.filter { $0.id != currentUserUID }
@@ -112,9 +109,11 @@ class FirebaseService {
         totalVotes = 0
     }
 
-    // MARK: - Save Profile (onboarding + edit-profile)
+    // MARK: - Create Profile (onboarding only)
+    // Called once when a new user completes onboarding.
+    // Creates the document from scratch and initializes scores to 0.
 
-    func saveProfile(_ profile: UserProfile) async {
+    func createProfile(_ profile: UserProfile) async {
         guard let uid = Auth.auth().currentUser?.uid else { return }
         await MainActor.run { isLoading = true }
 
@@ -128,9 +127,9 @@ class FirebaseService {
             "major":         profile.major,
             "coreVibe":      profile.coreVibe,
             "funFact":       profile.funFact,
-            "personalScore": profile.personalScore,
-            "smashCount":    profile.smashCount,
-            "passCount":     profile.passCount
+            "personalScore": 0,
+            "smashCount":    0,
+            "passCount":     0
         ]
 
         do {
@@ -140,6 +139,42 @@ class FirebaseService {
             await MainActor.run {
                 self.currentUser = saved
                 self.needsOnboarding = false
+                self.isLoading = false
+            }
+        } catch {
+            await MainActor.run {
+                self.errorMessage = error.localizedDescription
+                self.isLoading = false
+            }
+        }
+    }
+
+    // MARK: - Update Profile (edit profile only)
+    // Called when an existing user edits their profile.
+    // Never touches scores — those are owned exclusively by vote transactions.
+
+    func updateProfile(_ profile: UserProfile) async {
+        guard let uid = Auth.auth().currentUser?.uid else { return }
+        await MainActor.run { isLoading = true }
+
+        let data: [String: Any] = [
+            "name":        profile.name,
+            "mbti":        profile.mbti,
+            "rizzHobbies": profile.rizzHobbies.isEmpty ? [] : [profile.rizzHobbies],
+            "anthem":      profile.anthem,
+            "routine":     profile.routine,
+            "homeTurf":    profile.homeTurf,
+            "major":       profile.major,
+            "coreVibe":    profile.coreVibe,
+            "funFact":     profile.funFact
+        ]
+
+        do {
+            try await db.collection("users").document(uid).updateData(data)
+            var saved = profile
+            saved.id = uid
+            await MainActor.run {
+                self.currentUser = saved
                 self.isLoading = false
             }
         } catch {
