@@ -21,6 +21,8 @@ struct UserProfile: Identifiable {
     var major: String = ""
     var coreVibe: String = ""
     var funFact: String = ""
+    var instagram: String = ""
+    var hasInstagram: Bool = true
     var personalScore: Int = 0
     var smashCount: Int = 0
     var passCount: Int = 0

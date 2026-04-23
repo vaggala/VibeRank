@@ -12,6 +12,8 @@ struct VoteView: View {
     @State private var reactionCounter: Int = 0
     @State private var activeReaction: VoteReaction? = nil
     @State private var reactionDuration: Double = 1.5
+    @State private var activeMatch: MutualMatch? = nil
+    @State private var pendingMatch: MutualMatch? = nil
 
     var body: some View {
         ZStack {
@@ -40,6 +42,14 @@ struct VoteView: View {
                 VoteReactionView(reaction: reaction, totalDuration: reactionDuration)
                     .id(reactionCounter)
                     .transition(.opacity)
+            }
+
+            if let match = activeMatch {
+                MutualMatchView(match: match) {
+                    withAnimation(.easeOut(duration: 0.2)) { activeMatch = nil }
+                }
+                .transition(.opacity)
+                .zIndex(10)
             }
         }
     }
@@ -224,6 +234,7 @@ struct VoteView: View {
         DispatchQueue.main.asyncAfter(deadline: .now() + reactionDuration + 0.1) {
             if reactionCounter == reactionSnapshot {
                 activeReaction = nil
+                drainPendingMatch()
             }
         }
 
@@ -231,12 +242,34 @@ struct VoteView: View {
         withAnimation(.easeIn(duration: 0.3)) { dragOffset = offset; cardOpacity = 0 }
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) { pressedButton = nil }
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
-            service.vote(direction, targetID: profileID)
+            service.vote(direction, targetID: profileID) { match in
+                handleMutualMatch(match)
+            }
             dragOffset = .zero
             cardOpacity = 1.0
         }
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.9) {
             activeBurstType = nil
+        }
+    }
+
+    private func handleMutualMatch(_ match: MutualMatch) {
+        if activeReaction != nil {
+            pendingMatch = match
+        } else {
+            showMatchPopup(match)
+        }
+    }
+
+    private func drainPendingMatch() {
+        guard let pending = pendingMatch else { return }
+        pendingMatch = nil
+        showMatchPopup(pending)
+    }
+
+    private func showMatchPopup(_ match: MutualMatch) {
+        withAnimation(.spring(response: 0.45, dampingFraction: 0.7)) {
+            activeMatch = match
         }
     }
 

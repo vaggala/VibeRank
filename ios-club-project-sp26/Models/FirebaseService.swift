@@ -128,6 +128,8 @@ class FirebaseService {
             "major":         profile.major,
             "coreVibe":      profile.coreVibe,
             "funFact":       profile.funFact,
+            "instagram":     profile.instagram,
+            "hasInstagram":  profile.hasInstagram,
             "personalScore": profile.personalScore,
             "smashCount":    profile.smashCount,
             "passCount":     profile.passCount
@@ -173,6 +175,8 @@ class FirebaseService {
                     profile.major         = data["major"]         as? String ?? ""
                     profile.coreVibe      = data["coreVibe"]      as? String ?? ""
                     profile.funFact       = data["funFact"]       as? String ?? ""
+                    profile.instagram     = FirebaseService.instagramOrDefault(data: data)
+                    profile.hasInstagram  = data["hasInstagram"]  as? Bool ?? true
                     profile.personalScore = data["personalScore"] as? Int ?? 0
                     profile.smashCount    = data["smashCount"]    as? Int ?? 0
                     profile.passCount     = data["passCount"]     as? Int ?? 0
@@ -211,6 +215,8 @@ class FirebaseService {
                         p.major         = data["major"]         as? String ?? ""
                         p.coreVibe      = data["coreVibe"]      as? String ?? ""
                         p.funFact       = data["funFact"]       as? String ?? ""
+                        p.instagram     = FirebaseService.instagramOrDefault(data: data)
+                        p.hasInstagram  = data["hasInstagram"]  as? Bool ?? true
                         p.personalScore = data["personalScore"] as? Int ?? 0
                         p.smashCount    = data["smashCount"]    as? Int ?? 0
                         p.passCount     = data["passCount"]     as? Int ?? 0
@@ -247,6 +253,8 @@ class FirebaseService {
                     p.major         = data["major"]         as? String ?? ""
                     p.coreVibe      = data["coreVibe"]      as? String ?? ""
                     p.funFact       = data["funFact"]       as? String ?? ""
+                    p.instagram     = FirebaseService.instagramOrDefault(data: data)
+                    p.hasInstagram  = data["hasInstagram"]  as? Bool ?? true
                     p.personalScore = data["personalScore"] as? Int ?? 0
                     p.smashCount    = data["smashCount"]    as? Int ?? 0
                     p.passCount     = data["passCount"]     as? Int ?? 0
@@ -258,19 +266,24 @@ class FirebaseService {
 
     // MARK: - Vote (optimistic local update + Firestore write)
 
-    func vote(_ type: VoteType, targetID: String = "") {
+    func vote(_ type: VoteType, targetID: String = "", onMutualMatch: ((MutualMatch) -> Void)? = nil) {
         switch type {
         case .smash:
             if let index = allProfiles.firstIndex(where: { $0.id == targetID }) {
                 allProfiles[index].personalScore += 100
                 allProfiles[index].smashCount += 1
             }
-            Task { await submitVote(targetUserId: targetID, isSmash: true) }
+            Task {
+                let match = await submitVote(targetUserId: targetID, isSmash: true)
+                if let match = match {
+                    await MainActor.run { onMutualMatch?(match) }
+                }
+            }
         case .pass:
             if let index = allProfiles.firstIndex(where: { $0.id == targetID }) {
                 allProfiles[index].passCount += 1
             }
-            Task { await submitVote(targetUserId: targetID, isSmash: false) }
+            Task { _ = await submitVote(targetUserId: targetID, isSmash: false) }
         case .skip:
             break
         }
@@ -280,10 +293,11 @@ class FirebaseService {
 
     // MARK: - Submit Vote (Firestore transaction)
 
-    func submitVote(targetUserId: String, isSmash: Bool) async {
+    @discardableResult
+    func submitVote(targetUserId: String, isSmash: Bool) async -> MutualMatch? {
         guard let voterId = Auth.auth().currentUser?.uid else {
             print("submitVote: no logged-in user")
-            return
+            return nil
         }
 
         let voteRef   = db.collection("votes").document()
@@ -330,7 +344,119 @@ class FirebaseService {
             print("vote submitted successfully")
         } catch {
             print("vote failed: \(error)")
+            return nil
         }
+
+        guard isSmash else { return nil }
+        return await detectAndWriteMutualMatch(voterId: voterId, targetUserId: targetUserId)
+    }
+
+    // MARK: - Mutual-Match Detection
+
+    private func detectAndWriteMutualMatch(voterId: String, targetUserId: String) async -> MutualMatch? {
+        do {
+            let reciprocal = try await db.collection("votes")
+                .whereField("voterId",     isEqualTo: targetUserId)
+                .whereField("targetUserId", isEqualTo: voterId)
+                .whereField("voteType",    isEqualTo: "smash")
+                .limit(to: 1)
+                .getDocuments()
+            guard !reciprocal.documents.isEmpty else { return nil }
+
+            async let voterDocTask  = db.collection("users").document(voterId).getDocument()
+            async let targetDocTask = db.collection("users").document(targetUserId).getDocument()
+            let voterDoc  = try await voterDocTask
+            let targetDoc = try await targetDocTask
+
+            let voterData  = voterDoc.data()  ?? [:]
+            let targetData = targetDoc.data() ?? [:]
+
+            let voterName  = voterData["name"]          as? String ?? ""
+            let targetName = targetData["name"]         as? String ?? ""
+            let voterIg    = FirebaseService.instagramOrDefault(data: voterData)
+            let targetIg   = FirebaseService.instagramOrDefault(data: targetData)
+            let voterHas   = voterData["hasInstagram"]  as? Bool   ?? true
+            let targetHas  = targetData["hasInstagram"] as? Bool   ?? true
+
+            let matchId = MutualMatch.pairDocId(voterId, targetUserId)
+            let sorted  = [voterId, targetUserId].sorted()
+            let voterIsA = sorted[0] == voterId
+
+            let matchData: [String: Any] = [
+                "id":            matchId,
+                "participants":  [voterId, targetUserId],
+                "uidA":          sorted[0],
+                "uidB":          sorted[1],
+                "nameA":         voterIsA ? voterName : targetName,
+                "nameB":         voterIsA ? targetName : voterName,
+                "instagramA":    voterIsA ? voterIg : targetIg,
+                "instagramB":    voterIsA ? targetIg : voterIg,
+                "hasInstagramA": voterIsA ? voterHas : targetHas,
+                "hasInstagramB": voterIsA ? targetHas : voterHas,
+                "createdAt":     Date()
+            ]
+
+            try await db.collection("matches").document(matchId).setData(matchData)
+
+            return MutualMatch(
+                id: matchId,
+                otherUserId: targetUserId,
+                otherUserName: targetName,
+                otherUserInstagram: targetIg,
+                otherUserHasInstagram: targetHas,
+                createdAt: Date()
+            )
+        } catch {
+            print("mutual-match detection failed: \(error)")
+            return nil
+        }
+    }
+
+    // MARK: - Fetch Matches (for Profile tab list)
+
+    func fetchMatches(for uid: String) async -> [MutualMatch] {
+        do {
+            let snapshot = try await db.collection("matches")
+                .whereField("participants", arrayContains: uid)
+                .getDocuments()
+            let matches: [MutualMatch] = snapshot.documents.compactMap { doc in
+                let data = doc.data()
+                let uidA = data["uidA"] as? String ?? ""
+                let uidB = data["uidB"] as? String ?? ""
+                let isA  = uid == uidA
+                let otherUid    = isA ? uidB : uidA
+                let otherName   = (isA ? data["nameB"]         : data["nameA"])         as? String ?? ""
+                let otherIg     = (isA ? data["instagramB"]    : data["instagramA"])    as? String ?? ""
+                let otherHasIg  = (isA ? data["hasInstagramB"] : data["hasInstagramA"]) as? Bool   ?? true
+                let createdAt   = (data["createdAt"] as? Timestamp)?.dateValue() ?? Date()
+                return MutualMatch(
+                    id: doc.documentID,
+                    otherUserId: otherUid,
+                    otherUserName: otherName,
+                    otherUserInstagram: otherIg,
+                    otherUserHasInstagram: otherHasIg,
+                    createdAt: createdAt
+                )
+            }
+            return matches.sorted { $0.createdAt > $1.createdAt }
+        } catch {
+            print("fetchMatches failed: \(error)")
+            return []
+        }
+    }
+
+    // MARK: - IG Lazy Backfill
+
+    static func instagramOrDefault(data: [String: Any]) -> String {
+        if let stored = data["instagram"] as? String, !stored.isEmpty {
+            return stored
+        }
+        let name = data["name"] as? String ?? ""
+        let first = name.split(separator: " ").first.map(String.init) ?? name
+        let cleaned = first
+            .lowercased()
+            .filter { $0.isLetter || $0.isNumber }
+        return cleaned.isEmpty ? "@user" : "@\(cleaned)"
     }
 
     // MARK: - Fetch My Rank

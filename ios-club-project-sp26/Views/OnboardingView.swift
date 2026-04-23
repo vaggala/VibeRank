@@ -13,11 +13,13 @@ struct OnboardingView: View {
     @State private var major: String = ""
     @State private var coreVibe: String = ""
     @State private var funFact: String = ""
- 
+    @State private var instagram: String = ""
+    @State private var hasInstagram: Bool = true
+
     @FocusState private var fieldFocused: Bool
- 
-    private let totalSteps = 9
- 
+
+    private let totalSteps = 10
+
     private let steps: [(title: String, subtitle: String, icon: String)] = [
         ("What's your name?",          "Let's start with the basics",                    "person.fill"),
         ("Your MBTI?",                 "Pick your personality type",                     "brain.head.profile"),
@@ -28,6 +30,7 @@ struct OnboardingView: View {
         ("Major",                      "What are you studying?",                         "graduationcap.fill"),
         ("Core Vibe",                  "Describe yourself in one iconic phrase",         "flame.fill"),
         ("Fun Fact",                   "Something that makes people say \"wait what\"",  "star.fill"),
+        ("Instagram",                  "How can other vibers find you?",                 "camera.fill"),
     ]
  
     private let mbtiTypes = [
@@ -111,8 +114,69 @@ struct OnboardingView: View {
                     .foregroundColor(AppTheme.textDim)
             }
  
-            if step == 1 { mbtiPicker } else { textInputField }
+            if step == 1 {
+                mbtiPicker
+            } else if step == 9 {
+                instagramInput
+            } else {
+                textInputField
+            }
         }
+    }
+
+    // MARK: - Instagram Input
+
+    private var instagramInput: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            TextField("@yourhandle", text: $instagram)
+                .font(.system(size: 16))
+                .foregroundColor(AppTheme.text)
+                .autocorrectionDisabled()
+                .textInputAutocapitalization(.never)
+                .focused($fieldFocused)
+                .disabled(!hasInstagram)
+                .padding(16)
+                .background(AppTheme.card)
+                .clipShape(RoundedRectangle(cornerRadius: 14))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 14)
+                        .stroke(fieldFocused ? AppTheme.purple.opacity(0.6) : AppTheme.cardBorder, lineWidth: 1)
+                )
+                .opacity(hasInstagram ? 1.0 : 0.4)
+                .animation(.easeInOut(duration: 0.2), value: fieldFocused)
+                .animation(.easeInOut(duration: 0.2), value: hasInstagram)
+
+            Button {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    hasInstagram.toggle()
+                    if !hasInstagram { fieldFocused = false }
+                }
+            } label: {
+                HStack(spacing: 10) {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 6)
+                            .stroke(hasInstagram ? AppTheme.cardBorder : AppTheme.purple, lineWidth: 1.5)
+                            .frame(width: 22, height: 22)
+                            .background(
+                                RoundedRectangle(cornerRadius: 6)
+                                    .fill(hasInstagram ? Color.clear : AppTheme.purple.opacity(0.25))
+                            )
+                        if !hasInstagram {
+                            Image(systemName: "checkmark")
+                                .font(.system(size: 12, weight: .bold))
+                                .foregroundColor(AppTheme.purple)
+                        }
+                    }
+                    Text("I don't have Instagram")
+                        .font(.system(size: 14))
+                        .foregroundColor(AppTheme.textDim)
+                    Spacer()
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+        }
+        .onAppear { if hasInstagram { fieldFocused = true } }
     }
  
     // MARK: - Text Input
@@ -232,10 +296,11 @@ struct OnboardingView: View {
         case 6: return $major
         case 7: return $coreVibe
         case 8: return $funFact
+        case 9: return $instagram
         default: return .constant("")
         }
     }
- 
+
     private var currentValue: String {
         switch step {
         case 0: return name
@@ -247,25 +312,38 @@ struct OnboardingView: View {
         case 6: return major
         case 7: return coreVibe
         case 8: return funFact
+        case 9: return instagram
         default: return ""
         }
     }
- 
+
     private var canAdvance: Bool {
-        !currentValue.trimmingCharacters(in: .whitespaces).isEmpty
+        if step == 9 {
+            return !hasInstagram || !instagram.trimmingCharacters(in: .whitespaces).isEmpty
+        }
+        return !currentValue.trimmingCharacters(in: .whitespaces).isEmpty
     }
- 
+
+    private func normalizedInstagram() -> String {
+        guard hasInstagram else { return "" }
+        let trimmed = instagram.trimmingCharacters(in: .whitespaces)
+        if trimmed.isEmpty { return "" }
+        return trimmed.hasPrefix("@") ? trimmed : "@\(trimmed)"
+    }
+
     private func submitProfile() {
         var profile = UserProfile()
-        profile.name        = name.trimmingCharacters(in: .whitespaces)
-        profile.mbti        = mbti
-        profile.rizzHobbies = hobbies.trimmingCharacters(in: .whitespaces)
-        profile.anthem      = anthem.trimmingCharacters(in: .whitespaces)
-        profile.routine     = routine.trimmingCharacters(in: .whitespaces)
-        profile.homeTurf    = homeTurf.trimmingCharacters(in: .whitespaces)
-        profile.major       = major.trimmingCharacters(in: .whitespaces)
-        profile.coreVibe    = coreVibe.trimmingCharacters(in: .whitespaces)
-        profile.funFact     = funFact.trimmingCharacters(in: .whitespaces)
+        profile.name         = name.trimmingCharacters(in: .whitespaces)
+        profile.mbti         = mbti
+        profile.rizzHobbies  = hobbies.trimmingCharacters(in: .whitespaces)
+        profile.anthem       = anthem.trimmingCharacters(in: .whitespaces)
+        profile.routine      = routine.trimmingCharacters(in: .whitespaces)
+        profile.homeTurf     = homeTurf.trimmingCharacters(in: .whitespaces)
+        profile.major        = major.trimmingCharacters(in: .whitespaces)
+        profile.coreVibe     = coreVibe.trimmingCharacters(in: .whitespaces)
+        profile.funFact      = funFact.trimmingCharacters(in: .whitespaces)
+        profile.instagram    = normalizedInstagram()
+        profile.hasInstagram = hasInstagram
         Task { await service.saveProfile(profile) }
     }
 }
