@@ -278,32 +278,35 @@ class FirebaseService {
 
     func fetchProfiles() {
         isLoading = true
-        db.collection("users").getDocuments { [weak self] snapshot, _ in
-            DispatchQueue.main.async {
-                self?.isLoading = false
-                guard let docs = snapshot?.documents else { return }
-                self?.allProfiles = docs.map { doc in
-                    let data = doc.data()
-                    var p = UserProfile()
-                    p.id            = doc.documentID
-                    p.name          = data["name"]          as? String ?? ""
-                    p.mbti          = data["mbti"]          as? String ?? ""
-                    p.rizzHobbies   = (data["rizzHobbies"]  as? [String] ?? []).joined(separator: ", ")
-                    p.anthem        = data["anthem"]        as? String ?? ""
-                    p.routine       = data["routine"]       as? String ?? ""
-                    p.homeTurf      = data["homeTurf"]      as? String ?? ""
-                    p.major         = data["major"]         as? String ?? ""
-                    p.coreVibe      = data["coreVibe"]      as? String ?? ""
-                    p.funFact       = data["funFact"]       as? String ?? ""
-                    p.instagram     = FirebaseService.instagramOrDefault(data: data)
-                    p.hasInstagram  = data["hasInstagram"]  as? Bool ?? true
-                    p.personalScore = data["personalScore"] as? Int ?? 0
-                    p.smashCount    = data["smashCount"]    as? Int ?? 0
-                    p.passCount     = data["passCount"]     as? Int ?? 0
-                    return p
+        db.collection("users")
+            .order(by: "personalScore", descending: true)
+            .limit(to: 20)
+            .getDocuments { [weak self] snapshot, _ in
+                DispatchQueue.main.async {
+                    self?.isLoading = false
+                    guard let docs = snapshot?.documents else { return }
+                    self?.allProfiles = docs.map { doc in
+                        let data = doc.data()
+                        var p = UserProfile()
+                        p.id            = doc.documentID
+                        p.name          = data["name"] as? String ?? ""
+                        p.mbti          = data["mbti"] as? String ?? ""
+                        p.rizzHobbies   = (data["rizzHobbies"] as? [String] ?? []).joined(separator: ", ")
+                        p.anthem        = data["anthem"] as? String ?? ""
+                        p.routine       = data["routine"] as? String ?? ""
+                        p.homeTurf      = data["homeTurf"] as? String ?? ""
+                        p.major         = data["major"] as? String ?? ""
+                        p.coreVibe      = data["coreVibe"] as? String ?? ""
+                        p.funFact       = data["funFact"] as? String ?? ""
+                        p.instagram     = FirebaseService.instagramOrDefault(data: data)
+                        p.hasInstagram  = data["hasInstagram"] as? Bool ?? true
+                        p.personalScore = data["personalScore"] as? Int ?? 0
+                        p.smashCount    = data["smashCount"] as? Int ?? 0
+                        p.passCount     = data["passCount"] as? Int ?? 0
+                        return p
+                    }
                 }
             }
-        }
     }
 
     // MARK: - Vote (optimistic local update + Firestore write)
