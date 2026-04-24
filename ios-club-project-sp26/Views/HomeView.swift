@@ -5,6 +5,10 @@ struct HomeView: View {
     var currentUser: UserProfile
     var onStartVoting: () -> Void
  
+//    private var userRank: Int {
+//        let board = service.leaderboard
+//        return (board.firstIndex(where: { $0.id == currentUser.id }) ?? 0) + 1
+//    }
     private var userRank: Int {
         let board = service.leaderboard
         guard let index = board.firstIndex(where: { $0.id == currentUser.id }) else {

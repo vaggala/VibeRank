@@ -22,12 +22,26 @@ struct ProfileView: View {
                 statsRow
                 coreVibeCard
                 profileDetails
+                mutualSmashesSection
             }
             .padding(.horizontal, 16)
         }
         .sheet(isPresented: $showEditProfile) {
             EditProfileView()
         }
+        .task(id: user.id) {
+            await loadMatches()
+        }
+    }
+
+    // MARK: - Load Matches
+
+    private func loadMatches() async {
+        guard !user.id.isEmpty else { return }
+        matchesLoading = true
+        let fetched = await service.fetchMatches(for: user.id)
+        matches = fetched
+        matchesLoading = false
     }
 
     // MARK: - Top Bar
