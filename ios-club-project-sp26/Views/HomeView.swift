@@ -10,7 +10,11 @@ struct HomeView: View {
 //        return (board.firstIndex(where: { $0.id == currentUser.id }) ?? 0) + 1
 //    }
     private var userRank: Int {
-        service.userRank
+        let board = service.leaderboard
+        guard let index = board.firstIndex(where: { $0.id == currentUser.id }) else {
+            return -1
+        }
+        return index + 1
     }
  
     var body: some View {
@@ -60,13 +64,13 @@ struct HomeView: View {
                     .font(.system(size: 15, weight: .semibold)).foregroundColor(.white)
                 Text("\(currentUser.personalScore) Vibe Points")
                     .font(.system(size: 12)).foregroundColor(.white.opacity(0.7))
-                Text("Rank #\(userRank) globally")
+                Text(userRank == -1 ? "Unranked" : "Rank #\(userRank) globally")
                     .font(.system(size: 11)).foregroundColor(.white.opacity(0.5))
             }
  
             Spacer()
  
-            Text("#\(userRank)")
+            Text(userRank == -1 ? "—" : "#\(userRank)")
                 .font(.system(size: 12, weight: .bold)).foregroundColor(.white)
                 .padding(.horizontal, 10).padding(.vertical, 4)
                 .background(AppTheme.green).clipShape(Capsule())

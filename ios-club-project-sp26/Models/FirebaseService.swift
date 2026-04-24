@@ -64,6 +64,11 @@ class FirebaseService {
     var leaderboard: [UserProfile] {
         allProfiles
     }
+    
+    var myRank: Int {
+        guard !currentUserUID.isEmpty else { return -1 }
+        return allProfiles.first(where: { $0.id == currentUserUID })?.rank ?? -1
+    }
 
     // MARK: - Sign Up
 
@@ -372,7 +377,7 @@ class FirebaseService {
                     let smashCount   = targetDoc.data()?["smashCount"]    as? Int ?? 0
                     let passCount    = targetDoc.data()?["passCount"]     as? Int ?? 0
 
-                    let newScore      = isSmash ? currentScore + 100 : currentScore - 100
+                    let newScore      = isSmash ? currentScore + 100 : currentScore
                     let newSmashCount = isSmash ? smashCount + 1 : smashCount
                     let newPassCount  = isSmash ? passCount     : passCount + 1
 

@@ -45,8 +45,6 @@ struct ContentView: View {
             service.currentUserUID = user.id
             service.startListeningLeaderboard()
             Task {
-                let rank = await service.fetchMyRank(uid: user.id)
-                await MainActor.run { service.userRank = rank }
                 await service.refreshVotingDeck()
             }
         }
